@@ -5,6 +5,7 @@ import { LEVELS } from './ai.js';
 import { describeEffects, statusOf, categories, CATS } from './describe.js';
 import { PAGES, TIPS } from './tutorial.js';
 import { keys, initKeys, snapshot, restore, moveWithin } from './keys.js';
+import { playCondViewOk } from './effects.js';
 import { validateDeck, RULES } from './engine.js';
 import { store } from './store.js';
 import { onView, play, sound, floatText, heartbeat, newRoll, startDice } from './fx.js';
@@ -641,7 +642,8 @@ function gameScreen() {
         if (sc) {
           const c = getCard(sc.id);
           const playable = c.type === 'chara' || (c.effects || []).some((e) => e.when === 'play');
-          acts.push(h('button', { class: 'pri', disabled: !playable || !playsLeft, onclick: () => { app.sel = null; act({ t: 'play', uid: sc.uid }); } }, !playable ? '効果未実装' : !playsLeft ? '使用上限に達しました' : (c.type === 'chara' ? `「${c.name}」を場に出す` : `「${c.name}」を使う`)));
+          const condOk = playCondViewOk(v, c);
+          acts.push(h('button', { class: 'pri', disabled: !playable || !playsLeft || !condOk, onclick: () => { app.sel = null; act({ t: 'play', uid: sc.uid }); } }, !playable ? (c.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '効果未実装') : !condOk ? '使用条件を満たしていません' : !playsLeft ? '使用上限に達しました' : (c.type === 'chara' ? `「${c.name}」を場に出す` : `「${c.name}」を使う`)));
         }
         acts.push(h('button', { class: sc ? '' : 'pri big', onclick: () => { app.sel = null; act({ t: 'end' }); } }, '🎲 サイコロを振って終了'));
         if (!sc) info.push(h('div', { class: 'mute hint' }, 'カードは2回タップ / 上にドラッグで使用'));
@@ -654,7 +656,7 @@ function gameScreen() {
   const nHand = (P[me].hand || []).length;
   const hand = h('div', { class: 'hand', style: `--n:${nHand}` }, (P[me].hand || []).map((c) => {
     const card = getCard(c.id);
-    const playable = card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play');
+    const playable = (card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, card);
     const el = cardEl(c.id, { size: 'hand', selected: app.sel === c.uid, dim: !playable, uid: c.uid });
     // click = select, drag upward = play (Shadowverse style)
     const tap = () => {      // tap = select, tap the selected card again = use it  (also what Enter/Space does on a focused card)

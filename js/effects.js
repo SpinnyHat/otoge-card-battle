@@ -147,6 +147,7 @@ export function condOk(g, ctx, c) {
   if (c.taskTendency && !tend.some((t) => c.taskTendency.includes(t))) return false;
   if (c.taskFav && !tend.some((t) => mine.includes(t))) return false;
   if (c.taskMachine && !(T && (g.s.song.sflags.allMaimai ? 'maimai' === c.taskMachine : machinesOf(T).includes(c.taskMachine)))) return false;
+  if (c.taskMachineIn && !(T && machinesOf(T).some((m) => c.taskMachineIn.includes(m)))) return false;
   if (c.taskGroup && !(T && machinesOf(T).some((m) => MACHINE_GROUP[m] === c.taskGroup))) return false;
   if (c.taskComposer && !arr(T?.composer).includes(c.taskComposer)) return false;
   if (c.taskCharter && !arr(T?.charter || T?.composer).includes(c.taskCharter)) return false;
@@ -160,6 +161,17 @@ export function condOk(g, ctx, c) {
     const ok = side(g, p, who).some((q) => charasOf(g, q).some((i) => { const cd = getCard(i.id); return name ? cd.name === name : hasTag(g, cd, tag); }));
     if (!ok) return false;
   }
+  return true;
+}
+
+// Same check as the engine's, but from the sanitized view (the UI and the CPU use it to know if a card can be played right now)
+export function playCondViewOk(view, card) {
+  const c = (card.effects || []).find((e) => e.when === 'play')?.playCond;
+  if (!c) return true;
+  const T = view.song && getCard(view.song.taskId);
+  if (!T) return false;
+  if (c.firstRound && view.song.pass !== 1) return false;
+  if (c.taskMachineIn && !machinesOf(T).some((m) => c.taskMachineIn.includes(m))) return false;
   return true;
 }
 

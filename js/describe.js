@@ -2,7 +2,7 @@
 import { getCard } from './cards.js';
 
 const WHEN = {
-  ability: '課題曲の間、任意のタイミングで (ボタンで発動)', turnStart: '自分のターン開始時 (各曲の最初のラウンドのみ)', diceRoll: 'サイコロを振る際', play: 'このカードを使用した時', resolve: 'リザルトを出す時',
+  react: '相手が「ゴママヨ」の効果を発動する際 (自動で確認されます)', ability: '課題曲の間、任意のタイミングで (ボタンで発動)', turnStart: '自分のターン開始時 (各曲の最初のラウンドのみ)', diceRoll: 'サイコロを振る際', play: 'このカードを使用した時', resolve: 'リザルトを出す時',
   songStart: 'この楽曲が課題曲に選ばれた時', scoreGain: '自分のスコアが増える効果を得る度', skillScore: '自分のスコアを増やすスキルを使う度',
 };
 const ZONE = { grave: '(墓地にある間)', field: '(場にある間)', task: '(課題曲として選ばれている間)' };
@@ -13,6 +13,7 @@ const sgn = (n) => (n > 0 ? '＋' : '－') + Math.abs(n);
 const COND = {
   notJustPlayed: () => '場に出した次の曲から',
   firstRound: () => '各曲の最初のラウンドのみ',
+  taskMachineIn: (v) => `課題曲が ${v.join(' / ')} のいずれかの楽曲の場合`,
   notSpent: () => 'まだ使っていない場合 (1回だけ)',
   behind: () => '自分の獲得曲が相手より少ない場合',
   taskTendency: (v) => `課題曲の傾向が ${v.join(' / ')} の場合`,
@@ -70,6 +71,7 @@ const OP = {
   revive: () => '自分の墓地からキャラカードを1枚ランダムに手札へ戻す',
   yoshitaka: () => 'スコア＋2。3回目の発動時はスコアが無効になり、このカードを墓地に送る',
   aether: () => 'CHUNITHM/arcaeaキャラの数だけスコア＋、光が手札にある時さらに＋3',
+  negate: () => '相手が発動した「ゴママヨ」の効果を1度だけ無効化する (永続効果はそのターン限定)',
   beam: () => '場のキャラ1枚、またはどちらかの山札の一番上を選んで墓地に置く',
   sacrifice: () => '自分のキャラ1枚を墓地に置く。そうしたら、可能な場合、相手も自分のキャラを墓地に置く',
   lifeSyndrome: () => '手札を1枚墓地に置く、または山札の一番上を墓地に置く',
@@ -79,7 +81,7 @@ const op = (o) => { const t = (OP[o.op] || (() => `(${o.op})`))(o); const c = co
 // -> [{ when, zone, cond, steps:[...] }]
 export function describeEffects(card) {
   return (card.effects || []).filter((e) => e.ops).map((e) => ({
-    when: WHEN[e.when] || e.when, zone: ZONE[e.zone] || '', auto: !!e.auto, cond: cond(e.cond), steps: e.ops.map(op),
+    when: WHEN[e.when] || e.when, zone: ZONE[e.zone] || '', auto: !!e.auto, cond: [cond(e.cond), e.playCond ? `使用条件: ${cond(e.playCond)}` : ''].filter(Boolean).join(' / '), steps: e.ops.map(op),
   }));
 }
 export function statusOf(card) {

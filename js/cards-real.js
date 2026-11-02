@@ -9,6 +9,7 @@
 
 const S = 'サイコロ';
 const art = (n) => `assets/art/${n}.jpg`;
+const ARCADE = ['maimai', 'ongeki', 'chunithm', 'wacca', 'gfdm', 'ddr', 'beatmania', 'sdvx'];   // 課金 works on these machines' songs
 const T = (c) => ({ type: 'chara', ...c });
 const K = (c) => ({ type: 'skill', source: '', attr: 'half', footer: 'スキル', ...c });
 const play = (...ops) => [{ when: 'play', ops }];
@@ -80,7 +81,10 @@ export const realSkills = [
   // wip
   K({ id: 'sha-xi', name: '謝xi', wip: true, text: [`スコア決定後に1位とのスコア差が3点以上付いているなら、1位の相手に頭を下げてこのカードを発動出来る。自分はもう一度${S}を振りスコア計算を行う。`], effects: [] }),
   K({ id: 'rensaku', name: '連クレ', wip: true, text: ['この番が終わった後、もう一度自分の課題曲を行う。'], effects: [] }),
-  K({ id: 'kakin', name: '課金', wip: true, attr: 'half', footer: 'ゴママヨ', text: ['一部機種の課題曲が選曲されている間のみ使用可能。また、その課題曲が選曲されたタイミングでしか使用できない。', `スコアを決める際に振る${S}の振り直し権を一回獲得する。`], effects: [] }),
+  K({ id: 'kakin', name: '課金', attr: 'half', footer: 'ゴママヨ', tags: ['gomamayo'], unverified: true,
+    note: '「一部機種」はアーケード機種 (maimai / ONGEKI / CHUNITHM / WACCA / ギタドラ / BEMANI) と推測。「選曲されたタイミング」は各曲の最初のラウンドとして扱っています',
+    text: ['一部機種の課題曲が選曲されている間のみ使用可能。また、その課題曲が選曲されたタイミングでしか使用できない。', `スコアを決める際に振る${S}の振り直し権を一回獲得する。`],
+    effects: [{ when: 'play', playCond: { taskMachineIn: ARCADE, firstRound: true }, ops: [{ op: 'rerollRight', n: 1 }] }] }),
   K({ id: 'mirai', name: '未来を超えて', wip: true, text: ['アーケア曲でBeyondがあるものは進化する。(進化カードは未実装)'], effects: [] }),
   K({ id: 'strategy-bemani', name: 'ストラテジー:BEMANI封じ(仮)', wip: true, placeholder: true, footer: 'ストラテジー', text: ['相手がddr,beatmania,sdvxのカードを使用した時に使える。', 'その効果を無効にして墓地に送る。'], effects: [] }),
   // tokens

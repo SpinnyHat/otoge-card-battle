@@ -52,7 +52,7 @@ const chara = [
     effects: [{ when: 'turnStart', ops: [{ op: 'score', who: 'self', n: 1 }] }],
   },
   {
-    id: 'sakujo', name: '削除', source: '', art: art('sakujo'), attr: 'half', theme: '#555',
+    id: 'sakujo', name: '削除', source: '', art: art('sakujo'), attr: 'half', theme: '#555', tags: ['gomamayo'],
     flavor: 'オムライスすごい食べたい', footer: 'コンポーザー、ゴママヨ',
     text: ['場に出したあと1度だけ、自身のターン開始時に、相手の場のカードを1枚選んで墓地に捨ててよい。使った後もこのカードは場に残る。'],
     balance: '調整: 使い切り(1回だけ)。元は毎ターン使えた。使用後もカードは場に残る',
@@ -98,10 +98,11 @@ const chara = [
 /* ------------------------------------------------------------------- skill */
 const skill = [
   {
-    id: 'gomamayo-yokushi', name: 'ゴママヨ抑止', source: '', art: art('gomamayo'), attr: 'half',
-    flavor: '(これ抜擢したらゴママヨってバレるな…)', footer: 'ゴママヨ', wip: true,
+    id: 'gomamayo-yokushi', name: 'ゴママヨ抑止', source: '', art: art('gomamayo'), attr: 'half', tags: ['gomamayo'], reactOnly: true, noReact: true,
+    flavor: '(これ抜擢したらゴママヨってバレるな…)', footer: 'ゴママヨ',
     text: ['相手が「ゴママヨ」の効果を発動する際、このカードを使える。', '相手が発動した「ゴママヨ」の効果を一度だけ無効化する。(ただし、永続的な効果はそのターン限定で無効化するものとする)'],
-    effects: [],
+    // reaction card: it is never played proactively — the game asks the holder whenever an opposing ゴママヨ effect is about to resolve
+    effects: [{ when: 'react', ops: [{ op: 'negate' }] }],
   },
   { id: 'ph-combo', name: 'コンボ継続(仮)', text: ['スコア＋2'], ops: [{ op: 'score', who: 'self', n: 2 }] },
   { id: 'ph-draw', name: '連打ドロー(仮)', text: ['山札から2枚引き手札に加える。'], ops: [{ op: 'draw', who: 'self', n: 2 }] },

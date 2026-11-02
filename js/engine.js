@@ -3,6 +3,8 @@
 import { getCard, TENDENCIES, machinesOf } from './cards.js';
 import { OPS, condOk as fxCond } from './effects.js';
 
+export const GOMAMAYO_COUNTER = 'gomamayo-yokushi';
+
 export const RULES = {
   handSize: 5,
   chara: 5, skill: 20, skillCopies: 2, chart: 10,
@@ -137,6 +139,24 @@ export class Game {
     this.cont = cont;
     this.bump();
   }
+  // 「ゴママヨ」 effects can be countered: before one resolves, each opponent holding ゴママヨ抑止 is asked whether to spend it.
+  // run() = resolve the effect normally; negated() = it was cancelled.
+  maybeNegate(src, card, run, negated) {
+    if (!(card.tags || []).includes('gomamayo') || card.noReact) return run();
+    const holders = this.opps(src).filter((q) => this.s.players[q].hand.some((c) => c.id === GOMAMAYO_COUNTER));
+    const ask = (k) => {
+      if (k >= holders.length || this.over()) return run();
+      const q = holders[k];
+      this.ask(q, { kind: 'pick', text: `${this.name(src)} が「ゴママヨ」の効果【${card.name}】を発動します。ゴママヨ抑止で無効化しますか？`, cardId: GOMAMAYO_COUNTER, optional: true, skipLabel: 'そのまま通す', choices: [{ value: 1, label: 'ゴママヨ抑止を使う' }] }, (v) => {
+        if (!v) return ask(k + 1);
+        const h = this.s.players[q].hand, i = h.findIndex((c) => c.id === GOMAMAYO_COUNTER);
+        const [c] = h.splice(i, 1); this.s.players[q].grave.push(c);
+        this.log(`${this.name(q)} は ゴママヨ抑止 で ${card.name} の効果を無効化した！`);
+        if (negated) negated();
+      });
+    };
+    ask(0);
+  }
   runOps(ctx, ops, done) {
     const step = (i) => {
       if (this.over()) return;
@@ -248,7 +268,7 @@ export class Game {
       const card = this.card(inst);
       for (const ef of card.effects || []) {
         if (ef.when !== 'turnStart' || !(firstRound || ef.everyRound)) continue;
-        this.jobs.push(() => { const ctx = { p, inst, card }; if (inst.faceDown === false || inst.faceDown == null) { if (fxCond(this, ctx, ef.cond)) this.runOps(ctx, ef.ops); } });
+        this.jobs.push(() => { const ctx = { p, inst, card }; if (inst.faceDown === false || inst.faceDown == null) { if (fxCond(this, ctx, ef.cond)) this.maybeNegate(p, card, () => this.runOps(ctx, ef.ops)); } });
       }
     }
   }
@@ -294,20 +314,23 @@ export class Game {
     }
     if (card.type !== 'skill') return { ok: false, err: 'このカードは使えません' };
     const ef = (card.effects || []).find((e) => e.when === 'play');
+    if (card.reactOnly) return { ok: false, err: 'このカードは、相手が「ゴママヨ」の効果を発動した時に自動で確認されます' };
     if (!ef) return { ok: false, err: 'このカードの効果は未実装です' };
+    if (ef.playCond && !fxCond(this, { p, card, inst: null }, ef.playCond)) return { ok: false, err: 'いまは使えません (使用条件を満たしていません)' };
     const [inst] = hand.splice(i, 1);
     s.song.plays[p]++; s.song.played[p].push(card.id);
     this.log(`${this.name(p)} は ${card.name} を使った`);
     const ctx = { p, inst, card };
     const scoring = ef.ops.some((o) => o.op === 'score' && o.who === 'self' && o.n > 0);
-    this.runOps(ctx, ef.ops, () => {
+    const after = () => {
       if (ctx.keep) s.players[p].field.push({ uid: inst.uid, id: inst.id, faceDown: false, notChara: true });
       else s.players[p].grave.push({ uid: inst.uid, id: inst.id });
       if (scoring) {                                            // "自分のスコアを増やすスキルを使う度" (e.g. 生命性シンドロウム)
         const tc = getCard(s.song.task.inst.id);
         for (const e2 of tc.effects || []) if (e2.when === 'skillScore') this.runOps({ p, card: tc, inst: null }, e2.ops);
       }
-    });
+    };
+    this.maybeNegate(p, card, () => this.runOps(ctx, ef.ops, after), () => s.players[p].grave.push({ uid: inst.uid, id: inst.id }));
     return { ok: true };
   }
 

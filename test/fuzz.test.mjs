@@ -40,7 +40,7 @@ for (let n = 0; n < N; n++) {
   }
 }
 const played = new Set([...used].map((l) => l.replace(/^.+? は /, '').replace(/ を(使った|場に出した)$/, '')));
-const implemented = Object.values(CARDS).filter((c) => !c.token && (c.type === 'chara' || c.type === 'skill') && !c.wip && c.effects?.length);
+const implemented = Object.values(CARDS).filter((c) => !c.token && (c.type === 'chara' || c.type === 'skill') && !c.wip && !c.reactOnly && c.effects?.length);
 const never = implemented.filter((c) => !played.has(c.name)).map((c) => c.name);
 console.log(`${games}/${N} games completed`);
 if (never.length) console.log('never played in fuzz (fine if rare):', never.join(', '));

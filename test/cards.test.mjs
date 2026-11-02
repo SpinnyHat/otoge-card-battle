@@ -111,6 +111,36 @@ g.s.song.done[0] = false; g.beginTurn(0); g.pump(); assert.equal(g.s.prompt, nul
 g = setup({ task: NONE, field0: ['sakujo'], field1: ['hikari'] }); answer(g, null);
 assert.ok(!g.s.players[0].field[0].spent, 'declining does not use it up'); assert.equal(g.s.players[1].field.length, 1);
 g.beginTurn(0); g.pump(); assert.ok(g.s.prompt, 'so it can still be used on a later turn');
+
+// -- ゴママヨ cards
+{
+  const MAI = 'ph-maimai-1';          // an arcade (maimai) song
+  let gg = setup({ task: MAI, hand0: ['kakin'], hand1: [] }); play(gg, 0, 'kakin');
+  assert.equal(gg.flags(0).rerolls, 1, '課金 on an arcade song: gains a re-roll right');
+  gg = setup({ task: NONE, hand0: ['kakin'] });
+  assert.equal(gg.act(0, { t: 'play', uid: gg.s.players[0].hand[0].uid }).ok, false, '課金 is refused on a non-arcade (BMS) song');
+  gg = setup({ rounds: 2, task: MAI, hand0: ['kakin'] }); gg.act(0, { t: 'end' }); gg.act(1, { t: 'end' });
+  assert.equal(gg.s.song.pass, 2); gg.s.players[0].hand = [{ uid: 9901, id: 'kakin' }];
+  assert.equal(gg.act(0, { t: 'play', uid: 9901 }).ok, false, '課金 only works at the start of the song (round 1)');
+
+  // the counter: opponent holds ゴママヨ抑止 -> asked when a ゴママヨ card's effect is about to resolve
+  gg = setup({ task: MAI, hand0: ['kakin'], hand1: ['gomamayo-yokushi'] }); play(gg, 0, 'kakin');
+  assert.equal(gg.s.prompt.player, 1, 'the OPPONENT (holder of ゴママヨ抑止) is asked'); assert.equal(gg.s.prompt.cardId, 'gomamayo-yokushi');
+  answer(gg, 1);
+  assert.equal(gg.flags(0).rerolls, 0, 'effect negated'); assert.ok(gg.s.players[0].grave.some((c) => c.id === 'kakin'), '課金 still goes to the grave');
+  assert.ok(gg.s.players[1].grave.some((c) => c.id === 'gomamayo-yokushi') && gg.s.players[1].hand.length === 0, 'the counter is spent');
+  gg = setup({ task: MAI, hand0: ['kakin'], hand1: ['gomamayo-yokushi'] }); play(gg, 0, 'kakin'); answer(gg, null);
+  assert.equal(gg.flags(0).rerolls, 1, 'declined -> the effect goes through'); assert.equal(gg.s.players[1].hand.length, 1, 'and the counter is kept');
+  gg = setup({ task: NONE, hand0: ['ramen'], hand1: ['gomamayo-yokushi'] }); play(gg, 0, 'ramen');
+  assert.equal(gg.s.prompt, null, 'non-ゴママヨ cards are never interrupted'); assert.equal(sc(gg, 0), 1);
+  gg = setup({ task: NONE, hand1: ['gomamayo-yokushi'] }); assert.equal(gg.act(1, { t: 'play', uid: gg.s.players[1].hand[0].uid }).ok, false, '抑止 cannot be played proactively');
+
+  // 削除 is a ゴママヨ card too: its turn-start deletion can be countered, and a negated 削除 is not used up
+  gg = setup({ task: NONE, field0: ['sakujo'], field1: ['hikari'], hand1: ['gomamayo-yokushi'] });
+  assert.equal(gg.s.prompt.player, 1, '削除\'s effect triggers the counter question'); answer(gg, 1);
+  assert.equal(gg.s.prompt, null, 'negated: no deletion prompt for 削除\'s owner'); assert.equal(gg.s.players[1].field.length, 1, 'their card is safe');
+  assert.ok(!gg.s.players[0].field[0].spent, 'and 削除 is not used up');
+}
 console.log('card tests ok');
 
 // -- two rounds per song (default rules): each player plays <=2 cards and rolls, then the same again; totals decide
