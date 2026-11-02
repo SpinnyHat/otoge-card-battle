@@ -617,3 +617,8 @@ body.ingame{overflow:hidden}
 
 @keyframes rollnow{0%,100%{box-shadow:0 0 0 0 #ffd03aaa,0 0 14px #ffd03a66;transform:scale(1)}50%{box-shadow:0 0 0 10px #ffd03a00,0 0 30px #ffd03acc;transform:scale(1.07)}}
 button.rollnow{background:linear-gradient(180deg,#ffe066,#ff9d1c)!important;color:#2a1600!important;border-color:#fff3!important;font-weight:800;animation:rollnow 1.1s ease-in-out infinite}
+
+#sndbtn{position:fixed;top:max(6px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));z-index:90;width:2.3rem;height:2.3rem;padding:0;display:grid;place-items:center;font-size:1.05rem;border-radius:50%;opacity:.85}
+#sndbtn:hover{opacity:1}
+.topbar,.home-top{padding-right:2.9rem}
+.wrap>.row:first-child,.game .table>.pbar:first-child{padding-right:2.9rem}

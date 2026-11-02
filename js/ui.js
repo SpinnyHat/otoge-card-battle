@@ -154,11 +154,14 @@ function doCpu() {
 function topbar(title, back = true) {
   return h('div', { class: 'topbar' },
     back && h('button', { class: 'sec', onclick: () => { app.screen = 'home'; render(); } }, '← 戻る'),
-    h('div', { class: 'title' }, title), h('div', { class: 'grow' }), soundBtn(),
+    h('div', { class: 'title' }, title), h('div', { class: 'grow' }),
     h('button', { class: 'sec', onclick: editName }, `👤 ${store.profile.name}`));
 }
-function soundBtn() {
-  return h('button', { class: 'sec', title: 'サウンド', onclick: soundModal }, sound.mute ? '🔇' : '🔊');
+// one sound button, fixed in the top-right corner of every screen (phone and PC)
+function syncSoundBtn() {
+  let b = document.getElementById('sndbtn');
+  if (!b) { b = h('button', { id: 'sndbtn', class: 'sec', title: 'サウンド', onclick: soundModal }); document.body.append(b); }
+  b.textContent = sound.mute ? '🔇' : '🔊';
 }
 function soundModal() {
   const vol = h('input', { type: 'range', min: 0, max: 1, step: 0.05, value: sound.vol, oninput: (e) => { sound.setVol(+e.target.value); } });
@@ -181,7 +184,7 @@ function homeScreen() {
   const d = store.activeDeck;
   const dv = d && validateDeck(d);
   return h('div', { class: 'wrap' },
-    h('div', { class: 'row' }, h('div', { class: 'grow' }), soundBtn(), h('button', { class: 'sec', onclick: editName }, `👤 ${store.profile.name}`)),
+    h('div', { class: 'row' }, h('div', { class: 'grow' }), h('button', { class: 'sec', onclick: editName }, `👤 ${store.profile.name}`)),
     h('div', { class: 'hero' }, h('h1', null, GAME_TITLE), h('div', { class: 'mute' }, '音ゲー × カードバトル　サイコロと選曲で勝負！')),
     h('div', { class: 'menu' },
       h('button', { onclick: () => { app.tutPage = 0; app.screen = 'tutorial'; render(); } }, h('b', null, '🎓 チュートリアル'), h('span', null, '遊び方を覚えて練習対戦')),
@@ -750,7 +753,7 @@ function gameScreen() {
   setTimeout(() => { logEl.scrollTop = logEl.scrollHeight; });
 
   const mb = pbar(me);
-  mb.append(soundBtn(), h('button', { class: 'sec', onclick: () => { app.logOpen = !app.logOpen; render(); } }, '📜 ログ'),
+  mb.append(h('button', { class: 'sec', onclick: () => { app.logOpen = !app.logOpen; render(); } }, '📜 ログ'),
     h('button', { class: 'sec', onclick: () => { if (confirm('対戦から退出しますか？')) leave(); } }, '退出'));
   const last = v.log[v.log.length - 1];
   const g = h('div', { class: 'game' + (v.song?.sudden && v.phase === 'song' ? ' sudden' : '') },
@@ -863,6 +866,7 @@ export function render() {
   keys.hook = null;
   const y = root.scrollTop;
   document.body.classList.toggle('ingame', app.screen === 'game');
+  syncSoundBtn();
   root.replaceChildren(SCREENS[app.screen]());
   if (app.screen === 'game') postRenderFx();
   restore(snap);
