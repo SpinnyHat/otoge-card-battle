@@ -99,7 +99,7 @@ export const realCharts = [
   chartOf({ id: 'mopemope', name: 'もぺもぺ', machine: 'bms', tendency: 'SPECIAL', composer: ['LeaF'], source: 'BMS', art: art('mopemope'), attr: 'kyo', footer: 'LeaF', unverified: true,
     text: ['この譜面カードが課題曲としてセットされている間、任意のタイミングで自分のキャラクターカードを墓地に置いていもよい。そうしたら、可能な場合、相手も自分のキャラクターカードを墓地に置く。'],
     effects: [{ when: 'ability', label: 'キャラを墓地に置く (もぺもぺ)', ops: [{ op: 'sacrifice' }] }] }),
-  chartOf({ id: 'kamui', name: '神威', machine: 'ez2dj', tendency: ['NONE', 'NOTES'], composer: ['EZ2DJ'], source: 'EZ2DJ', art: art('kamui'), attr: 'menu', bpm: 210, genre: 'ART CORE', footer: 'EZ2DJ、ゲキチュウマイ、グルコス、ポラリコ', unverified: true,
+  chartOf({ id: 'kamui', name: '神威', machine: 'ez2dj', alsoMachines: ['sdvx', 'polaris', 'chunithm', 'ongeki', 'maimai', 'djmax', 'platina', 'groovecoaster'], tendency: ['NONE', 'NOTES'], composer: ['EZ2DJ'], source: 'EZ2DJ', art: art('kamui'), attr: 'menu', bpm: 210, genre: 'ART CORE', footer: 'EZ2DJ、ゲキチュウマイ、グルコス、ポラリコ', unverified: true,
     text: ['この曲の譜面傾向は、NOTESとしても扱われる。', 'この曲が課題曲となった次のターン、両プレイヤーは癖状態を付与される。'],
     effects: [{ when: 'songStart', ops: [{ op: 'giveCard', id: 'kuse', to: 'each', zone: 'grave' }] }] }),
   chartOf({ id: 'seimeisei', name: '生命性シンドロウム', note: 'プロセカ収録曲 (オーナー情報)', machine: 'proseka', tendency: 'NONE',

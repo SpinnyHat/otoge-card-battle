@@ -67,7 +67,7 @@ export const OPS = {
         const [c] = f.splice(f.findIndex((x) => x.uid === v), 1);
         g.s.players[ch.owner].grave.push({ uid: c.uid, id: c.id });
         g.log(`${g.name(ctx.p)}: ${g.cname(c)} を墓地に捨てた`);
-        if (op.once && ctx.inst) { ctx.inst.spent = true; g.log(`${ctx.card.name} は使い切った (場には残る)`); }
+        if (op.once && ctx.inst) { ctx.inst.spent = true; ctx.inst.faceDown = true; g.log(`${ctx.card.name} は使い切って裏向きになった (場には残る・効果は発動しない)`); }
       }
       next();
     });

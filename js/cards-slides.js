@@ -171,4 +171,5 @@ export const slideCharts = [
     text: ['三儀の凱奏発動時まで自分以外で1番高い点数の人から2点もらう', '※三儀の凱奏がない場合は勝負が終了するまで継続デバフ扱いとなる'], effects: [] }),
 ];
 
-export const slideMachines = [['taiko', '太鼓の達人', '#ff5a3c', null], ['kagura', '東方ダンマクカグラ', '#ffb0b0', null]];
+export const slideMachines = [['taiko', '太鼓の達人', '#ff5a3c', null], ['kagura', '東方ダンマクカグラ', '#ffb0b0', null],
+  ['polaris', 'ポラリスコード', '#9ad0ff', null], ['djmax', 'DJMAX', '#ffd36a', null], ['platina', 'PLATINA::LAB', '#c0e8ff', null], ['groovecoaster', 'グルコス (GROOVE COASTER)', '#ff9ad0', null]];

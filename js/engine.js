@@ -330,7 +330,7 @@ export class Game {
     const ctx = { p, inst, card };
     const scoring = ef.ops.some((o) => o.op === 'score' && o.who === 'self' && o.n > 0);
     const after = () => {
-      if (ctx.keep) s.players[p].field.push({ uid: inst.uid, id: inst.id, faceDown: false, notChara: true });
+      if (ctx.keep) s.players[p].field.push({ uid: inst.uid, id: inst.id, faceDown: true, notChara: true });   // ability used up but the card stays: it lies face-down (裏向き)
       else s.players[p].grave.push({ uid: inst.uid, id: inst.id });
       if (scoring) {                                            // "自分のスコアを増やすスキルを使う度" (e.g. 生命性シンドロウム)
         const tc = getCard(s.song.task.inst.id);

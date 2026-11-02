@@ -1,0 +1,7 @@
+<!doctype html>
+<!-- Test helper: shows the game in a frame of an exact size so phone-width layouts can be checked in a desktop browser.
+     Usage: /test/phone-frame.html?w=390&h=760  -->
+<meta charset="utf-8"><title>phone frame</title>
+<body style="margin:0;background:#000;display:flex;justify-content:center;align-items:flex-start;height:100vh">
+<iframe id="f" style="border:0;background:#000"></iframe>
+<script>const p = new URLSearchParams(location.search); f.width = p.get('w') || 390; f.height = p.get('h') || 760; f.src = '../index.html' + (location.hash || '');</script>

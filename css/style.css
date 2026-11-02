@@ -393,3 +393,151 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
 .stat2 .ti{width:1.35rem;height:1.35rem;background:#fff;border-radius:50%}
 .stat2 small{font-size:.72rem;color:var(--mute);letter-spacing:.03em}
 .pbar .won .card{--w:26px}
+
+/* playing: hover widens a card a little, click opens the detailed view */
+.zoomable{cursor:zoom-in}
+.field .card.zoomable,.taskwrap .card{transition:transform .15s ease,box-shadow .15s ease}
+.field .card.zoomable,.taskwrap .card{transition:scale .15s ease,box-shadow .15s ease}
+.field .card.zoomable:hover{scale:1.12;z-index:3;box-shadow:0 8px 22px #000c}
+.taskwrap:hover .card{scale:1.08;box-shadow:0 10px 26px #000c}
+.won .card{transition:scale .15s}.won .card:hover{scale:1.6;z-index:5}
+
+/* hand: bigger cards, more of each one peeking in; dulled when this turn's cards are used up */
+.game{--hw:clamp(124px,23vh,240px)}
+.table{grid-template-rows:auto minmax(0,1fr) minmax(210px,1.7fr) auto minmax(0,1fr) auto calc(var(--hw)*.64 + .2rem)}
+.hslot{height:calc(var(--w)*.64)}
+.hslot:hover .card,.hslot.sel .card,.hslot:focus .card{transform:translateY(-58%) scale(1.14)}
+.hslot .card.dim{transition:filter .25s}
+
+/* ============================ phone / touch ============================ */
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button,.chip,.tab,.hslot,.slot{touch-action:manipulation}
+@supports (height:100dvh){.game{height:100dvh}.wrap.fit{height:100dvh}}
+@media (hover:none){#preview{display:none!important}}            /* no hover on touch: the tap-to-enlarge views replace it */
+
+/* portrait phones */
+@media (max-width:700px){
+  .wrap{padding:.7rem}
+  .hero h1{font-size:2.1rem}
+  .menu{grid-template-columns:1fr 1fr;gap:.6rem}.menu button{padding:.9rem .8rem}.menu button b{font-size:1rem}.menu button span{font-size:.75rem}
+  .topbar{gap:.4rem;flex-wrap:wrap}.topbar .title{font-size:1.05rem}
+  .panel{padding:.8rem}
+  .codebox{font-size:1.6rem}
+  /* game */
+  .game{--hw:clamp(88px,26vw,132px);min-height:480px}
+  .table{padding:.3rem .35rem 0;gap:.25rem;grid-template-rows:auto minmax(0,.85fr) minmax(0,2.1fr) 0 minmax(0,.85fr) auto calc(var(--hw)*.64 + .15rem)}
+  .ticker{display:none}
+  .pbar{gap:.3rem;padding:.2rem .45rem;font-size:.82rem}
+  .pbar .nm{font-size:.82rem;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pbar .won,.pbar .sel-tag span{display:none}
+  .pbar button{padding:.2em .55em;font-size:.8rem}
+  .stat2{padding:.04rem .38rem;gap:.25rem;font-size:.82rem}.stat2 .si{font-size:.95rem}.stat2 b{font-size:.92rem}.stat2.wins b{font-size:1rem}
+  .stat2 small{display:none}.stat2 .ti{width:1.05rem;height:1.05rem}.stat2.tend{gap:.3rem}
+  .fieldlabel{font-size:.62rem;left:.4rem}
+  .center{grid-template-columns:auto minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:.5rem;row-gap:.2rem;padding:0}
+  .center > div:first-child{grid-row:1;gap:.15rem}
+  .center > div:first-child .mute{font-size:.62rem;text-align:center}
+  .card.size-task{--w:clamp(70px,22vw,110px)}
+  .chooser{font-size:.66rem;padding:.12rem .5rem}
+  .score{grid-column:2;gap:.35rem}
+  .score .pcol{padding:.3rem .45rem}.score .tot{font-size:1.6rem}.score ul{font-size:.7rem}
+  .actionp{grid-column:1 / -1;width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;gap:.4rem;margin:0;overflow:visible;max-height:none}
+  .actionp .acts{flex-direction:row;flex-wrap:wrap;gap:.35rem}
+  .actionp .status{font-size:.9rem}.actionp button.big,.actionp button{padding:.55em .8em;font-size:.9rem}
+  .actionp .lastroll,.actionp .hint{display:none}
+  .die.small{width:30px;height:30px;font-size:1.3rem}
+  .hslot{margin-left:min(calc(var(--w)*-.42),calc((100vw - 14px - var(--w))/max(var(--n) - 1,1) - var(--w)))}
+  .handzoom .card,.card.size-zoom2{--w:min(300px,62vw,44vh)}
+  .handzoom .hz{font-size:.74rem;white-space:normal;text-align:center;max-width:86vw}
+  .card.size-zoom{--w:min(380px,78vw,56vh)}
+  .zoomwrap{gap:.4rem}.zoomwrap button{font-size:1.2rem;padding:.4em .6em}
+  .sidebar{width:88vw}
+  .coach{right:.4rem;left:.4rem;width:auto;top:2.6rem}
+  .fx-banner .bm{font-size:2.1rem}
+  .modal{padding:.9rem}.efftext{max-width:100%;font-size:.9rem}.promptcard{flex-direction:column;align-items:flex-start}
+  .choicerow .card{--w:84px}
+  /* deck builder / library */
+  .builder{grid-template-columns:1fr}
+  .decklist{flex-direction:row!important;overflow-x:auto;max-height:none!important;gap:.4rem;flex:none}.decklist .item{min-width:150px;flex:none;font-size:.85rem}
+  .pool8{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr))}
+  .card.size-fit{--w:min(calc((25cqh - 42px)/1.4),calc(50cqw - 18px))}
+  .panel.editor{padding:.55rem;gap:.35rem}
+  .deck-search{width:100%!important}
+  .lib{grid-template-columns:1fr}.lib .pool{grid-template-columns:repeat(2,minmax(0,1fr))}.detail{max-height:42vh}
+  .pool .slot .card,.lib .slot .card{--w:min(150px,40vw)}
+  .tutbody{flex-direction:column}.tutcards .card{--w:clamp(90px,26vw,160px)}
+}
+
+/* landscape phones (very short screens) */
+@media (max-height:520px) and (min-width:560px){
+  .game{--hw:clamp(70px,24vh,118px);min-height:0}
+  .table{padding:.25rem .5rem 0;gap:.2rem;grid-template-rows:auto minmax(0,.8fr) minmax(120px,1.8fr) 0 minmax(0,.8fr) auto calc(var(--hw)*.64)}
+  .ticker,.fieldlabel{display:none}
+  .pbar{padding:.12rem .5rem}
+  .score .tot{font-size:1.4rem}.score ul{font-size:.7rem}
+  .actionp{width:200px}.actionp .hint,.actionp .lastroll{display:none}
+  .stat2 small{display:none}
+  .card.size-task{--w:calc((100cqh - 56px)/1.4)}
+  .handzoom .card,.card.size-zoom2{--w:min(240px,40vh)}
+}
+@media (max-width:700px){
+  .panel.col.grow{flex:1 1 100%;min-width:0}
+  input,select,textarea{max-width:100%}
+  .row{min-width:0}
+  .codebox{letter-spacing:.12em;font-size:1.5rem}
+  .seat{flex-wrap:wrap}
+}
+
+/* landscape phones: the controls float on the right edge so they can never be squeezed off-screen */
+@media (max-height:520px) and (min-width:560px){
+  .table{grid-template-rows:auto minmax(0,.5fr) minmax(0,1.6fr) 0 minmax(0,.5fr) auto calc(var(--hw)*.64)}
+  .pbar{flex-wrap:nowrap;overflow:hidden;gap:.3rem}
+  .pbar .stat2.tend,.pbar .won{display:none}
+  .pbar button{padding:.1em .5em;font-size:.75rem}
+  .pbar .nm{max-width:22vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .center{padding-right:196px}
+  .actionp{position:fixed;right:.4rem;top:44%;transform:translateY(-50%);z-index:28;width:180px;background:#0b0d14ee;border:1px solid var(--line);border-radius:12px;padding:.5rem;max-height:60vh;overflow:auto;margin:0}
+  .actionp .status{font-size:.85rem}.actionp button{padding:.45em .6em;font-size:.82rem}
+}
+
+/* ---- phone, portrait: compact カード図鑑 / デッキ構築 (smaller cards, more visible at once) ---- */
+@media (max-width:700px){
+  .wrap.fit{padding:.45rem}
+  .wrap.fit .topbar{margin-bottom:.35rem;flex-wrap:nowrap}
+  .wrap.fit .topbar>button.sec:last-child{display:none}         /* the player-name button */
+  .wrap.fit .topbar .title{font-size:1rem;white-space:nowrap}
+  .wrap.fit>.row{flex-wrap:nowrap;overflow-x:auto;gap:.3rem;padding-bottom:.2rem;scrollbar-width:none;flex:none}
+  .wrap.fit>.row>*{flex:none}
+  .lib-search{width:150px!important}
+  .tab{padding:.3em .65em;font-size:.82rem}
+  .chip{padding:.18em .55em;font-size:.76rem}
+  /* library */
+  .lib{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,.85fr);gap:.4rem}
+  .lib .pool{grid-template-columns:repeat(3,minmax(0,1fr));gap:.3rem;margin-top:0;padding:.1rem}
+  .lib .slot{padding:.12rem}
+  .lib .slot .card{--w:min(27vw,100px)}
+  .detail{display:block;max-height:none;padding:.6rem;overflow:auto}
+  .detail>*{margin-bottom:.45rem}
+  .detail .big{float:left;margin:0 .6rem .3rem 0}
+  .detail .big .card{--w:min(110px,28vw)}
+  .detail h3{font-size:1rem;margin:0 0 .3rem}
+  .rawtext{font-size:.9rem;line-height:1.55;padding:.5rem .6rem}
+  .kv{font-size:.8rem}
+  /* deck builder */
+  .builder{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:.4rem}
+  .decklist{max-height:42px!important;align-items:center;flex-wrap:nowrap}
+  .decklist>.row{flex:none;flex-wrap:nowrap}
+  .decklist .item{min-width:0;padding:.25rem .6rem;white-space:nowrap}
+  .decklist .item .mute{display:none}
+  .panel.editor button{padding:.28em .55em;font-size:.76rem}
+  .panel.editor input{padding:.3em .5em}
+  .counter{padding:.1em .5em;font-size:.72rem}
+  .pool8{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:.1rem .25rem}
+  .card.size-fit{--w:min(calc((50cqh - 38px)/1.4),calc(25cqw - 8px))}
+  .stepper{gap:.15rem}.stepper button{padding:.05em .4em}
+  .pool8 .slot .mute{display:none}
+}
+
+/* scrollbars: slim and dark everywhere (the default white bars looked glaring); detail text clears the floated card */
+*{scrollbar-width:thin;scrollbar-color:#3a4260 transparent}
+.detail .rawtext{clear:both}

@@ -106,7 +106,7 @@ g = setup({ task: NONE, field0: ['sakujo'], field1: ['hikari', 'tsumugi'] });
 assert.ok(g.s.prompt && g.s.prompt.choices.every((c) => c.owner === 1), '削除 offers only the OPPONENT\'s cards (tagged with their owner)');
 answer(g, g.s.players[1].field[0].uid);
 assert.equal(g.s.players[1].field.length, 1, 'one opposing card deleted'); assert.equal(g.s.players[0].field.length, 1, '削除 itself stays on the field');
-assert.equal(g.s.players[0].field[0].spent, true, 'and is marked used up');
+assert.equal(g.s.players[0].field[0].spent, true, 'and is marked used up'); assert.equal(g.s.players[0].field[0].faceDown, true, 'and flips face-down (裏向き)');
 g.s.song.done[0] = false; g.beginTurn(0); g.pump(); assert.equal(g.s.prompt, null, 'a spent 削除 never asks again');
 g = setup({ task: NONE, field0: ['sakujo'], field1: ['hikari'] }); answer(g, null);
 assert.ok(!g.s.players[0].field[0].spent, 'declining does not use it up'); assert.equal(g.s.players[1].field.length, 1);

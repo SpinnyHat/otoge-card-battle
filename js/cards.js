@@ -55,7 +55,7 @@ const chara = [
   {
     id: 'sakujo', name: '削除', source: '', art: art('sakujo'), attr: 'half', theme: '#555', tags: ['gomamayo'],
     flavor: 'オムライスすごい食べたい', footer: 'コンポーザー、ゴママヨ',
-    text: ['場に出したあと1度だけ、自身のターン開始時に、相手の場のカードを1枚選んで墓地に捨ててよい。使った後もこのカードは場に残る。'],
+    text: ['場に出したあと1度だけ、自身のターン開始時に、相手の場のカードを1枚選んで墓地に捨ててよい。使った後もこのカードは場に残る。', '(使った後は裏向きになる。裏になったカードの効果は発動しない)'],
     balance: '調整: 使い切り(1回だけ)。元は毎ターン使えた。使用後もカードは場に残る',
     // implemented as: pick one chara on the opponent's field -> grave, once; the card then stays (spent)
     effects: [{ when: 'turnStart', cond: { notSpent: true }, ops: [{ op: 'pickToGrave', from: 'oppField', optional: true, once: true }] }],

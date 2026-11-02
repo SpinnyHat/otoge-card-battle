@@ -104,6 +104,19 @@ answer(g, 0); assert.equal(g.s.phase, 'draw', 'after both answers the song is sc
 g = setup({ task: 'idol', hand0: [] }); assert.ok(g.s.prompt, '偶像: players look at their top cards first'); answer(g, null); if (g.s.prompt) answer(g, null);
 assert.equal(sc(g, 0), -1, '...then everybody loses 1'); assert.equal(sc(g, 1), -1);
 g = setup({ task: 'freedom-dive', tend0: ['NOTES'], tend1: ['PEAK'], hand0: [], hand1: [] }); assert.equal(g.s.players[0].hand.length, 1, 'FREEDOM DiVE: NOTES/STAMINA players draw'); assert.equal(g.s.players[1].hand.length, 0);
+
+// 神威 is usable with extra machines
+{
+  const { validateDeck } = await import('../js/engine.js');
+  const base = STARTER_DECKS[2];
+  for (const m of ['ez2dj', 'sdvx', 'polaris', 'chunithm', 'ongeki', 'maimai', 'djmax', 'platina', 'groovecoaster']) {
+    const d = { ...base, machines: [m], chart: [...base.chart.filter((c) => c !== 'kamui').slice(0, 9).map((c) => 'ph-bms-1' === c ? c : c), 'kamui'] };
+    d.chart = ['kamui', 'ph-bms-1', 'ph-bms-2', 'ph-bms-3', 'ph-bms-4', 'ph-bms-5', 'qq', 'enngeki', 'halcyon', 'freedom-dive'];
+    const errs = validateDeck(d).errors.filter((e) => e.includes('神威'));
+    assert.equal(errs.length, 0, `神威 should be legal with machine ${m}: ${errs}`);
+  }
+  assert.ok(validateDeck({ ...base, machines: ['wacca'], chart: ['kamui', 'ph-bms-1', 'ph-bms-2', 'ph-bms-3', 'ph-bms-4', 'ph-bms-5', 'qq', 'enngeki', 'halcyon', 'freedom-dive'] }).errors.some((e) => e.includes('神威')), '...and still illegal with an unrelated machine (WACCA)');
+}
 console.log('slide card tests ok');
 
 // ---- レイシス / 対立 and the free draw between rounds
@@ -123,3 +136,17 @@ console.log('slide card tests ok');
   gg = setup({ rounds: 1, task: NONE }); const h1 = gg.s.players[0].hand.length; endBoth(gg); assert.equal(gg.s.players[0].hand.length, h1, '1-round songs: no extra draw');
 }
 console.log('round-draw / レイシス / 対立 tests ok');
+
+// ---- cards that keep their place but lose their ability lie face-down (裏向き)
+{
+  let gg = setup({ task: 'ph-bms-4', hand0: ['malody'], tend0: ['NONE'] });
+  play(gg, 0, 'malody');
+  const m = gg.s.players[0].field.find((c) => c.id === 'malody');
+  assert.ok(m && m.faceDown === true && m.notChara === true, 'Malody stays on the field face-down');
+  assert.ok(gg.tendenciesOf(0).includes('NOTES'), 'its effect (adding NOTES) still happened when it was played');
+  gg = setup({ task: NONE, field0: ['sakujo'], field1: ['hikari'] }); answer(gg, gg.s.players[1].field[0].uid);
+  const s = gg.s.players[0].field[0];
+  assert.ok(s.spent && s.faceDown, '削除 flips face-down after its single use');
+  gg.beginTurn(0); gg.pump(); assert.equal(gg.s.prompt, null, 'and a face-down card never triggers');
+}
+console.log('face-down tests ok');

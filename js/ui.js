@@ -601,13 +601,20 @@ function gameScreen() {
       h('div', { class: 'won' }, p.won.map((c) => cardEl(c.id, { size: 'xs' }))),
       h('span', { class: 'stat2 wins', title: `獲得した課題曲 (${v.rules.winsNeeded}曲で勝利)` }, h('span', { class: 'si' }, '🏆'), h('b', null, `${p.won.length}/${v.rules.winsNeeded}`)));
   };
-  const fieldRow = (i) => h('div', { class: 'field ' + (i === me ? 'f-mine' : 'f-theirs') }, h('span', { class: 'fieldlabel' }, i === me ? 'あなたの場' : '相手の場'), P[i].field.length ? P[i].field.map((c) => cardEl(c.id || null, { size: 'field', faceDown: c.faceDown, uid: c.uid, spent: c.spent })) : h('span', { class: 'hint' }, '場にキャラはいません'));
+  const fieldRow = (i) => h('div', { class: 'field ' + (i === me ? 'f-mine' : 'f-theirs') }, h('span', { class: 'fieldlabel' }, i === me ? 'あなたの場' : '相手の場'), P[i].field.length ? P[i].field.map((c) => {
+    const el = cardEl(c.id || null, { size: 'field', faceDown: c.faceDown, uid: c.uid, spent: c.spent });
+    if (!c.faceDown && c.id) {      // click a card on the board -> big detailed view (←/→ browse that side's cards)
+      const list = P[i].field.filter((x) => !x.faceDown && x.id).map((x) => getCard(x.id));
+      el.classList.add('zoomable'); el.addEventListener('click', () => zoomCard(list, list.findIndex((x) => x.id === c.id)));
+    }
+    return el;
+  }) : h('span', { class: 'hint' }, '場にキャラはいません'));
 
   // centre: task song + scores
   const song = v.song;
   const center = h('div', { class: 'center' },
     song ? h('div', { class: 'col', style: 'align-items:center' },
-      h('div', { class: 'mute' }, `第${song.no}曲${song.sudden ? ' (サドンデス)' : ''} 課題曲${v.rules.turns > 1 ? ` ・ ラウンド ${song.pass}/${v.rules.turns}` : ''}`), h('div', { class: 'taskwrap ' + (song.owner == null ? 'rand' : song.owner === me ? 'mine' : 'theirs') }, cardEl(song.taskId, { size: 'task' })),
+      h('div', { class: 'mute' }, `第${song.no}曲${song.sudden ? ' (サドンデス)' : ''} 課題曲${v.rules.turns > 1 ? ` ・ ラウンド ${song.pass}/${v.rules.turns}` : ''}`), h('div', { class: 'taskwrap zoomable ' + (song.owner == null ? 'rand' : song.owner === me ? 'mine' : 'theirs'), title: 'クリックで詳しく見る', onclick: () => zoomCard([getCard(song.taskId)], 0) }, cardEl(song.taskId, { size: 'task' })),
       h('div', { class: 'chooser ' + (song.owner == null ? 'rand' : song.owner === me ? 'mine' : 'theirs') },
         song.owner == null ? '🎲 ランダム選曲' : song.owner === me ? '🎵 あなたが選曲' : `🎵 ${names[song.owner]} が選曲`)) : h('div', { style: 'width:170px' }),
     h('div', { class: 'score' }, [me, opp].map((i) => h('div', { class: 'pcol' + (i === me ? ' me' : ''), 'data-p': i },
@@ -658,7 +665,7 @@ function gameScreen() {
   const hand = h('div', { class: 'hand', style: `--n:${nHand}` }, (P[me].hand || []).map((c) => {
     const card = getCard(c.id);
     const playable = (card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, card);
-    const el = cardEl(c.id, { size: 'hand', selected: app.sel === c.uid, dim: !playable, uid: c.uid });
+    const el = cardEl(c.id, { size: 'hand', selected: app.sel === c.uid, dim: !playable || (myTurn && !playsLeft), uid: c.uid });
     // click = select, drag upward = play (Shadowverse style)
     const tap = () => {      // tap = select, tap the selected card again = use it  (also what Enter/Space does on a focused card)
       if (app.sel === c.uid && canUse && playable) { app.sel = null; return act({ t: 'play', uid: c.uid }); }
