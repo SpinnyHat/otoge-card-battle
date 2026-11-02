@@ -5,6 +5,7 @@ import { LEVELS } from './ai.js';
 import { describeEffects, statusOf, categories, CATS } from './describe.js';
 import { PAGES, TIPS } from './tutorial.js';
 import { keys, initKeys, snapshot, restore, moveWithin } from './keys.js';
+import { BUILD } from './version.js';
 import { playCondViewOk } from './effects.js';
 import { validateDeck, RULES } from './engine.js';
 import { store } from './store.js';
@@ -189,10 +190,11 @@ function homeScreen() {
       h('button', { onclick: () => { app.screen = 'decks'; render(); } }, h('b', null, '🃏 デッキ構築'), h('span', null, '作成・編集・共有コード')),
       h('button', { onclick: () => { app.screen = 'library'; render(); } }, h('b', null, '📖 カード図鑑'), h('span', null, '全カードを見る')),
       h('button', { onclick: () => { app.screen = 'rules'; render(); } }, h('b', null, '📜 ルール'), h('span', null, '遊び方と現在の仕様'))),
-    h('div', { class: 'panel', style: 'margin-top:1.5rem' },
+    h('div', { class: 'panel', style: 'margin-top:1rem' },
       h('div', { class: 'row' }, h('span', { class: 'mute' }, '使用中のデッキ:'), h('b', null, d ? d.name : 'なし'),
         d && (dv.ok ? h('span', { class: 'okc' }, '✔ 対戦可能') : h('span', { class: 'err' }, '⚠ ' + dv.errors[0])),
-        h('div', { class: 'grow' }), h('button', { onclick: () => { app.screen = 'decks'; render(); } }, '編集'))));
+        h('div', { class: 'grow' }), h('button', { onclick: () => { app.screen = 'decks'; render(); } }, '編集'))),
+    h('div', { class: 'mute', style: 'text-align:center;font-size:.7rem;margin-top:.5rem' }, `build ${BUILD}`));
 }
 
 function cpuScreen() {
@@ -324,6 +326,8 @@ function counter(label, n, max) { return h('span', { class: 'counter ' + (n === 
 
 const FILTER_DEFAULT = { q: '', own: 'all', machine: null, tend: null, cat: null, impl: 'all', legal: false };
 const PER_PAGE = 8;
+const isPhone = () => matchMedia('(max-width:700px)').matches;      // portrait phones get their own, much simpler layouts
+const perPage = () => (isPhone() ? 12 : PER_PAGE);
 function deckList(d, key) {
   const F = app.deckFilter;
   return cardsOfType(key).filter((c) => {
@@ -384,7 +388,8 @@ function filterModal() {
   const set = (k, v, draw) => { app.deckFilter[k] = v; app.page = 0; render(); draw(); };
   pickModal('絞り込み', (draw, close) => {
     const F = app.deckFilter, isChart = key() === 'chart';
-    return h('div', { class: 'col' },
+    const kw = isPhone() ? h('input', { type: 'search', placeholder: '🔎 名前・効果で検索', value: F.q, oninput: (e) => { app.deckFilter.q = e.target.value; app.page = 0; render(); } }) : null;
+    return h('div', { class: 'col' }, kw,
       h('b', null, 'デッキ内'), chips([['all', 'すべて'], ['in', '入っている'], ['out', '入っていない']], (v) => F.own === v, (v) => set('own', v, draw)),
       h('b', null, '実装状況'), chips([['all', 'すべて'], ['ok', '実装済み'], ['wip', '効果未実装']], (v) => F.impl === v, (v) => set('impl', v, draw)),
       h('b', null, '効果のタイプ'), chips([[null, 'すべて'], ...Object.entries(CATS)], (v) => F.cat === v, (v) => set('cat', v, draw)),
@@ -396,6 +401,16 @@ function filterModal() {
   });
 }
 
+function deckMenu(d) {
+  const o = modal(h('h3', null, d.name), h('div', { class: 'col' },
+    h('button', { class: d.id === store.activeDeck?.id ? '' : 'pri', onclick: () => { store.setActive(d.id); toast('このデッキを使用します'); o.remove(); render(); } }, d.id === store.activeDeck?.id ? '✔ 使用中のデッキ' : 'このデッキを使う'),
+    h('button', { onclick: () => { const n = prompt('デッキ名', d.name); if (n) { mutate((x) => (x.name = n.slice(0, 40))); o.remove(); } } }, '名前を変える'),
+    h('button', { onclick: () => { app.editId = store.newDeck().id; app.page = 0; o.remove(); render(); } }, '＋ 新しいデッキ'),
+    h('button', { onclick: () => { app.editId = store.duplicate(d.id).id; o.remove(); render(); } }, '複製'),
+    h('button', { onclick: () => { const c = store.exportDeck(d); navigator.clipboard?.writeText(c).then(() => toast('デッキコードをコピーしました'), () => prompt('デッキコード', c)); o.remove(); } }, 'デッキコードを書き出す'),
+    h('button', { onclick: () => { const c = prompt('デッキコードを貼り付け'); if (!c) return; try { app.editId = store.importDeck(c).id; o.remove(); render(); } catch { toast('デッキコードが不正です', true); } } }, 'デッキコードを読み込む'),
+    h('button', { class: 'danger', onclick: () => { if (confirm(`「${d.name}」を削除しますか？`)) { store.remove(d.id); app.editId = null; o.remove(); render(); } } }, '削除')));
+}
 function deckScreen() {
   let d = editing();
   if (!d) { d = store.newDeck(); }
@@ -404,7 +419,7 @@ function deckScreen() {
   const v = validateDeck(d), R = RULES, key = app.tab;
   const maxCopies = key === 'skill' ? R.skillCopies : 1;
   const list = deckList(d, key);
-  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+  const pages = Math.max(1, Math.ceil(list.length / perPage()));
   app.page = Math.min(app.page, pages - 1);
   const go = (n) => { app.page = Math.max(0, Math.min(pages - 1, n)); render(); };
   const fc = filterCount();
@@ -428,7 +443,7 @@ function deckScreen() {
     sl._zoom = () => zoomCard(list, list.indexOf(c));
     return sl;
   };
-  const grid = h('div', { class: 'pool8' }, list.slice(app.page * PER_PAGE, app.page * PER_PAGE + PER_PAGE).map(slot),
+  const grid = h('div', { class: 'pool8' }, list.slice(app.page * perPage(), app.page * perPage() + perPage()).map(slot),
     !list.length && h('div', { class: 'mute', style: 'grid-column:1/-1;align-self:center;text-align:center' }, '条件に合うカードがありません'));
   let wheelT = 0;
   grid.addEventListener('wheel', (e) => { e.preventDefault(); if (Date.now() - wheelT < 220) return; wheelT = Date.now(); go(app.page + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
@@ -455,6 +470,25 @@ function deckScreen() {
       h('span', { class: 'mute', style: 'font-size:.85rem' }, `${list.length}件`),
       h('button', { disabled: app.page === 0, onclick: () => go(app.page - 1) }, '◀'), h('b', null, `${app.page + 1} / ${pages}`), h('button', { disabled: app.page >= pages - 1, onclick: () => go(app.page + 1) }, '▶')),
     grid);
+  // phone: one deck dropdown + ⋯ menu, one-line controls, then the cards (a desktop-sized header would use the whole screen)
+  const phone = isPhone();
+  const phoneEditor = () => {
+    const sel = h('select', { class: 'deck-pick', onchange: (e) => { app.editId = e.target.value; app.page = 0; render(); } },
+      store.decks.map((x) => h('option', { value: x.id, selected: x.id === d.id }, `${validateDeck(x).ok ? '✔' : '⚠'} ${x.name}${x.id === store.activeDeck?.id ? ' (使用中)' : ''}`)));
+    return h('div', { class: 'panel editor phone' },
+      h('div', { class: 'row prow' }, sel, h('button', { onclick: () => deckMenu(d) }, '⋯')),
+      h('div', { class: 'row prow' },
+        h('button', { onclick: tendencyModal }, h('img', { class: 'bi', src: `assets/icons/${TENDENCY_ICON[d.tendency] || 'half'}.png` }), ` ${d.tendency}`),
+        h('button', { onclick: machineModal }, `機種 ${d.machines.length}`),
+        counter('👤', d.chara.length, R.chara), counter('✨', d.skill.length, R.skill), counter('🎵', d.chart.length, R.chart),
+        v.ok ? h('span', { class: 'okc' }, '✔') : h('span', { class: 'err errlink', onclick: () => modal(h('h3', null, 'このデッキの問題'), h('ul', { class: 'err' }, v.errors.map((e) => h('li', null, e)))) }, '⚠')),
+      h('div', { class: 'row prow' },
+        [['chara', 'キャラ'], ['skill', 'スキル'], ['chart', '譜面']].map(([k, l]) => h('div', { class: 'tab' + (app.tab === k ? ' on' : ''), onclick: () => { app.tab = k; app.page = 0; render(); } }, l)),
+        h('div', { class: 'grow' }),
+        h('button', { class: fc || app.deckFilter.q ? 'pri' : '', onclick: filterModal }, `🔍${fc || app.deckFilter.q ? '●' : ''}`),
+        h('button', { disabled: app.page === 0, onclick: () => go(app.page - 1) }, '◀'), h('b', { class: 'pg' }, `${app.page + 1}/${pages}`), h('button', { disabled: app.page >= pages - 1, onclick: () => go(app.page + 1) }, '▶')),
+      grid);
+  };
   keys.hook = (e) => {
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'ArrowRight') {            // ←/→ : move between cards, and flip the page when there is nothing further
@@ -464,7 +498,7 @@ function deckScreen() {
     }
     if (k === 'z' || k === 'Z') {
       const sl = document.activeElement?.closest?.('.pool8 .slot'), i = sl ? [...document.querySelectorAll('.pool8 .slot')].indexOf(sl) : 0;
-      if (list[app.page * PER_PAGE + i]) { zoomCard(list, app.page * PER_PAGE + i); return true; }
+      if (list[app.page * perPage() + i]) { zoomCard(list, app.page * perPage() + i); return true; }
     }
     if (k === 'PageDown' || k === '.') { go(app.page + 1); return true; }
     if (k === 'PageUp' || k === ',') { go(app.page - 1); return true; }
@@ -473,9 +507,19 @@ function deckScreen() {
     if (t) { app.tab = t; app.page = 0; render(); return true; }
     return false;
   };
-  return h('div', { class: 'wrap fit', style: 'max-width:1500px;margin:0 auto;width:100%' }, topbar('デッキ構築'), h('div', { class: 'builder' }, decks, editor));
+  return h('div', { class: 'wrap fit', style: 'max-width:1500px;margin:0 auto;width:100%' }, topbar('デッキ構築'), h('div', { class: 'builder' }, ...(phone ? [phoneEditor()] : [decks, editor])));
 }
 
+// phone: tapping a card opens its details in a bottom sheet (◀ ▶ to browse) instead of squeezing a panel under the grid
+function libSheet(list, start) {
+  let i = start;
+  const o = h('div', { class: 'overlay sheetov', onclick: (e) => { if (e.target === o) o.remove(); } });
+  const step = (d) => { i = (i + d + list.length) % list.length; draw(); };
+  const draw = () => o.replaceChildren(h('div', { class: 'modal sheet' },
+    h('div', { class: 'row sheetbar' }, h('button', { onclick: () => step(-1) }, '◀'), h('b', { class: 'grow', style: 'text-align:center' }, `${i + 1} / ${list.length}`), h('button', { onclick: () => step(1) }, '▶'), h('button', { class: 'sec', onclick: () => o.remove() }, '✕')),
+    detailPanel(list[i])));
+  document.body.append(o); draw();
+}
 function libraryScreen() {
   const status = { all: 'すべて', ok: '実装済み', wip: '効果未実装', ph: '仮カード', uv: '要確認' };
   const pool = cardsOfType(app.tab).filter((c) => {
@@ -486,7 +530,7 @@ function libraryScreen() {
   let sel = getCard(app.libSel);
   if (!sel || sel.type !== app.tab || !pool.includes(sel)) sel = pool[0] || null;
   const grid = h('div', { class: 'pool' }, pool.map((c, i) => {
-    const slot = h('div', { class: 'slot' + (sel && c.id === sel.id ? ' on' : ''), title: 'ダブルクリックで拡大', onclick: () => selectHere() }, cardEl(c, { size: 'md' }));
+    const slot = h('div', { class: 'slot' + (sel && c.id === sel.id ? ' on' : ''), title: 'ダブルクリックで拡大', onclick: () => (isPhone() ? libSheet(pool, i) : selectHere()) }, cardEl(c, { size: 'md' }), h('div', { class: 'cap' }, c.name));
     // select WITHOUT rebuilding the grid: a rebuild between the two clicks of a double-click would swallow the dblclick, and would lose focus
     const selectHere = () => { app.libSel = c.id; document.querySelectorAll('.lib .slot').forEach((x) => x.classList.toggle('on', x === slot)); document.querySelector('.lib .detail')?.replaceWith(detailPanel(c)); };
     slot._zoom = () => zoomCard(pool, i);
@@ -504,7 +548,7 @@ function libraryScreen() {
       h('div', { class: 'grow' }),
       Object.entries(status).map(([k, l]) => h('span', { class: 'chip' + (app.libFilter === k ? ' on' : ''), onclick: () => { app.libFilter = k; render(); } }, l)),
       h('input', { placeholder: '検索', value: app.search, oninput: (e) => { app.search = e.target.value; clearTimeout(app._st); app._st = setTimeout(() => { render(); document.querySelector('.lib-search')?.focus(); }, 250); }, class: 'lib-search' })),
-    h('div', { class: 'lib' }, grid, detailPanel(sel)));
+    h('div', { class: 'lib' + (isPhone() ? ' phone' : '') }, grid, isPhone() ? null : detailPanel(sel)));
 }
 function detailPanel(c) {
   if (!c) return h('div', { class: 'panel detail mute' }, '該当するカードがありません');
@@ -595,7 +639,7 @@ function gameScreen() {
       h('span', { class: 'stat2 tend', title: `得意譜面傾向: ${p.tendencies.join(' / ')}` }, p.tendencies.slice(0, 3).map((t) => h('span', { class: 'tt' }, h('img', { class: 'ti', src: `assets/icons/${TENDENCY_ICON[t] || 'half'}.png`, alt: t }), h('small', null, t)))),
       stat2('🃏', p.handCount, '手札の枚数'),
       stat2('📚', p.pileCount, '山札の残り枚数 (0で敗北)', p.pileCount <= 4 ? 'low' : ''),
-      stat2('💿', p.chartCount, '譜面山札の残り枚数'),
+      stat2('💿', p.chartCount, '譜面山札の残り枚数', 'chartc'),
       h('span', { class: 'stat2 click', title: `${names[i]} の墓地 (クリックで中身を見る)`, onclick: () => showZone(`${names[i]} の墓地`, p.grave) }, h('span', { class: 'si' }, '🪦'), h('b', null, p.grave.length)),
       h('div', { class: 'grow' }),
       h('div', { class: 'won' }, p.won.map((c) => cardEl(c.id, { size: 'xs' }))),
@@ -770,18 +814,37 @@ function showZone(title, cards) {
 
 /* ------------------------------------------------------------------ main */
 const SCREENS = { tutorial: tutorialScreen, cpu: cpuScreen, home: homeScreen, play: playScreen, room: roomScreen, decks: deckScreen, library: libraryScreen, rules: rulesScreen, game: gameScreen };
+// The page itself never scrolls. --app-h is the REAL visible height (100vh is taller than the visible area on phones while the
+// address bar is showing). Screens that are not "fit" pages (home, setup, online room…) shrink to fit when they are too tall.
+function setAppHeight() { document.documentElement.style.setProperty('--app-h', innerHeight + 'px'); }
+function fitScreen() {
+  setAppHeight();
+  const el = document.querySelector('#app > .wrap:not(.fit)');
+  if (!el) return;
+  el.style.zoom = '';
+  let z = 1;
+  for (let k = 0; k < 5; k++) {
+    const h = el.scrollHeight;
+    if (h <= innerHeight + 1) break;
+    z = Math.max(0.55, z * (innerHeight / h)); el.style.zoom = z.toFixed(3);
+  }
+}
+addEventListener('resize', () => { setAppHeight(); if (app.screen !== 'game') fitScreen(); });
+addEventListener('orientationchange', () => setTimeout(() => { setAppHeight(); fitScreen(); }, 250));
+
 // inner scroll areas whose position must survive a re-render (the whole screen is rebuilt on every state change)
 const KEEP_SCROLL = ['.lib .pool', '.decklist', '.panel.scroll', '.tutbody'];
 export function render() {
   const saved = KEEP_SCROLL.map((sel) => [sel, [...document.querySelectorAll(sel)].map((e) => [e.scrollTop, e.scrollLeft])]);
   const snap = snapshot();
   keys.hook = null;
-  const y = window.scrollY;
+  const y = root.scrollTop;
   document.body.classList.toggle('ingame', app.screen === 'game');
   root.replaceChildren(SCREENS[app.screen]());
   if (app.screen === 'game') postRenderFx();
   restore(snap);
-  window.scrollTo(0, y);
+  fitScreen();
+  root.scrollTop = y;
   for (const [sel, pos] of saved) document.querySelectorAll(sel).forEach((e, i) => { if (pos[i]) { e.scrollTop = pos[i][0]; e.scrollLeft = pos[i][1]; } });
 }
 

@@ -541,3 +541,74 @@ button,.chip,.tab,.hslot,.slot{touch-action:manipulation}
 /* scrollbars: slim and dark everywhere (the default white bars looked glaring); detail text clears the floated card */
 *{scrollbar-width:thin;scrollbar-color:#3a4260 transparent}
 .detail .rawtext{clear:both}
+
+
+/* ===== the page never scrolls: everything lives in a viewport-height box (--app-h is set from innerHeight in JS) ===== */
+:root{--app-h:100vh}
+html,body{height:var(--app-h);overflow:hidden}
+#app{height:var(--app-h);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.wrap{min-height:0}
+.wrap.fit,.game{height:var(--app-h)}
+body.ingame{overflow:hidden}
+@media (max-width:700px){.game{min-height:0}}
+
+
+/* ---- phone game screen: everything is sized from the VISIBLE height so no row can be squeezed to nothing ---- */
+@media (max-width:700px){
+  .game{--hw:clamp(70px,min(26vw,17vh),132px)}
+  .table{grid-template-rows:auto minmax(0,1fr) minmax(0,1.9fr) 0 minmax(0,1fr) auto calc(var(--hw)*.64 + .15rem);gap:.2rem}
+  .pbar{flex-wrap:wrap;min-height:0;row-gap:.15rem}
+  .stat2.chartc,.pbar .stat2.tend small{display:none}
+  .pbar button{padding:.12em .4em;font-size:.7rem}
+  .card.size-task{--w:clamp(60px,min(22vw,15vh),110px)}
+  .actionp button,.actionp button.big{padding:.4em .7em;font-size:.82rem}
+  .actionp .status{font-size:.82rem}
+  .score .tot{font-size:1.3rem}.score .pcol{padding:.2rem .4rem}.score ul{font-size:.64rem;line-height:1.25}
+}
+
+
+/* =============================== phone redesigns =============================== */
+.cap{display:none}
+@media (max-width:700px){
+  /* ---- deck builder: one deck dropdown, one-line controls, then the cards ---- */
+  .panel.editor.phone{padding:.45rem;gap:.3rem}
+  .panel.editor.phone .prow{flex-wrap:nowrap;gap:.3rem;min-width:0;flex:none}
+  .panel.editor.phone .prow>*{flex:none}
+  .panel.editor.phone .deck-pick{flex:1 1 auto;min-width:0;width:100%;font-size:.9rem;padding:.4em .5em}
+  .panel.editor.phone button{padding:.3em .5em;font-size:.78rem}
+  .panel.editor.phone .tab{padding:.28em .55em;font-size:.8rem}
+  .panel.editor.phone .counter{padding:.08em .4em;font-size:.7rem}
+  .panel.editor.phone .pg{font-size:.78rem;min-width:2.6em;text-align:center}
+  .panel.editor.phone .pool8{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:.1rem .2rem}
+  .panel.editor.phone .card.size-fit{--w:min(calc((33.3cqh - 36px)/1.4),calc(25cqw - 8px))}
+  .panel.editor.phone .stepper button{padding:.02em .35em;font-size:.8rem}
+  .builder{display:flex;flex-direction:column}
+  /* ---- library: only the grid, names under the cards; details come as a bottom sheet ---- */
+  .lib.phone{grid-template-rows:minmax(0,1fr)}
+  .lib.phone .pool{grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem .3rem;align-content:start}
+  .lib.phone .slot{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.1rem}
+  .lib.phone .slot .card{--w:min(28vw,108px)}
+  .cap{display:block;font-size:.66rem;line-height:1.2;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
+  .overlay.sheetov{place-items:end center;padding:0}
+  .modal.sheet{width:100%;max-width:none;max-height:88dvh;border-radius:18px 18px 0 0;padding:.55rem}
+  .sheetbar{flex-wrap:nowrap;margin-bottom:.4rem}
+  .sheet .detail{max-height:none;border:0;background:none;padding:0}
+  .sheet .detail .big .card{--w:min(150px,38vw)}
+
+  /* ---- game: flexible column (a grid with auto rows let a wrapping status bar collapse the rows below it) ---- */
+  .table{display:flex;flex-direction:column;gap:.2rem}
+  .table>.pbar{flex:none}
+  .table>.field{flex:1 1 0;min-height:0}
+  .table>.center{flex:1.9 1 0;min-height:0}
+  .table>.ticker{display:none}
+  .table>.handspace{flex:none;height:calc(var(--hw)*.64 + .15rem)}
+  .pbar .grow{display:none}
+  .pbar .stat2.wins{margin-left:auto}
+}
+/* short screens (any width): a tighter home / menus */
+@media (max-height:700px){
+  .hero{padding:.2rem 0 0}.hero h1{font-size:1.9rem}
+  .menu{margin-top:.5rem}.menu button{padding:.6rem .7rem}.menu button span{display:none}
+}
+@media (max-width:700px){ .builder>.panel.editor{flex:1 1 0;min-height:0} }
+@media (max-width:700px){ .panel.editor.phone .prow{overflow-x:auto;scrollbar-width:none} }

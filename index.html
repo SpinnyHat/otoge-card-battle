@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2026-11-03c">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -28,6 +28,27 @@
 </script>
 <div id="preview" hidden></div>
 <div id="toasts"></div>
-<script type="module" src="js/ui.js"></script>
+<script type="importmap">
+{
+ "imports": {
+  "./js/ai.js": "./js/ai.js?v=2026-11-03c",
+  "./js/card.js": "./js/card.js?v=2026-11-03c",
+  "./js/cards-real.js": "./js/cards-real.js?v=2026-11-03c",
+  "./js/cards-slides.js": "./js/cards-slides.js?v=2026-11-03c",
+  "./js/cards.js": "./js/cards.js?v=2026-11-03c",
+  "./js/describe.js": "./js/describe.js?v=2026-11-03c",
+  "./js/effects.js": "./js/effects.js?v=2026-11-03c",
+  "./js/engine.js": "./js/engine.js?v=2026-11-03c",
+  "./js/fx.js": "./js/fx.js?v=2026-11-03c",
+  "./js/host.js": "./js/host.js?v=2026-11-03c",
+  "./js/keys.js": "./js/keys.js?v=2026-11-03c",
+  "./js/net.js": "./js/net.js?v=2026-11-03c",
+  "./js/store.js": "./js/store.js?v=2026-11-03c",
+  "./js/tutorial.js": "./js/tutorial.js?v=2026-11-03c",
+  "./js/version.js": "./js/version.js?v=2026-11-03c"
+ }
+}
+</script>
+<script type="module" src="js/ui.js?v=2026-11-03c"></script>
 </body>
 </html>
