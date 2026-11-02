@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rhythm Card Battle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<div id="fatal" hidden style="position:fixed;inset:auto 1rem 1rem 1rem;background:#400;color:#fff;border:1px solid #f66;border-radius:10px;padding:.8rem 1rem;z-index:999;font:14px/1.5 system-ui"></div>
+<script>
+  // visible error banner: a blank page is useless to debug
+  (function () {
+    var f = document.getElementById('fatal');
+    function show(m) { f.hidden = false; f.textContent = m; }
+    if (location.protocol === 'file:') show('file:// では動きません。ターミナルで ./serve.sh を実行し、表示された http://localhost:8000/ を開いてください。');
+    if (location.hostname === '0.0.0.0') show('0.0.0.0 ではブラウザにブロックされることがあります。http://localhost:' + location.port + '/ を開いてください。');
+    window.addEventListener('error', function (e) { show('エラー: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')'); });
+    window.addEventListener('unhandledrejection', function (e) { show('エラー: ' + (e.reason && e.reason.message || e.reason)); });
+  })();
+</script>
+<div id="preview" hidden></div>
+<div id="toasts"></div>
+<script type="module" src="js/ui.js"></script>
+</body>
+</html>

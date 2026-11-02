@@ -1,0 +1,55 @@
+{
+  "_note": "Every card image must be listed here. Official game logos / song jackets / screenshots are NOT allowed (copyright). Only artwork the owner has permission to use. 'creator' must be confirmed by the project owner.",
+  "tsumugi.jpg": {
+    "creator": "東雲つむぎ",
+    "status": "permitted (per owner)"
+  },
+  "hikari.jpg": {
+    "creator": "TODO confirm: ぬいぬいグレイス / コナステ / QQ / 皆伝 ?",
+    "status": "permitted creators list (per owner) - confirm which"
+  },
+  "mendako.jpg": {
+    "creator": "TODO confirm",
+    "status": "owner-supplied"
+  },
+  "sakujo.jpg": {
+    "creator": "TODO confirm",
+    "status": "owner-supplied"
+  },
+  "gomamayo.jpg": {
+    "creator": "TODO confirm",
+    "status": "owner-supplied (hand drawn)"
+  },
+  "ifu.jpg": {
+    "creator": "TODO confirm",
+    "status": "owner-supplied (hand drawn dice)"
+  },
+  "mopemope.jpg": {
+    "creator": "TODO confirm",
+    "status": "もぺもぺ (owner-provided illustration, OK per owner)"
+  },
+  "kamui.jpg": {
+    "creator": "TODO confirm",
+    "status": "神威 (owner-provided illustration, OK per owner)"
+  },
+  "sakujo-beam.jpg": {
+    "creator": "TODO confirm",
+    "status": "削除ビーム (owner-provided illustration, OK per owner)"
+  },
+  "reku.jpg": {
+    "creator": "TODO confirm",
+    "status": "Reku Mochizuki (owner-provided illustration, OK per owner)"
+  },
+  "qq.jpg": {
+    "creator": "QQ (per owner's permitted creators)",
+    "status": "QQ card art (owner-provided, OK per owner)"
+  },
+  "tairitsu.jpg": {
+    "creator": "TODO confirm",
+    "status": "対立 (owner-provided illustration, OK per owner)"
+  },
+  "reisis.jpg": {
+    "creator": "TODO confirm",
+    "status": "レイシス (owner-provided illustration, OK per owner)"
+  }
+}
