@@ -724,8 +724,9 @@ function gameScreen() {
   const nHand = (P[me].hand || []).length;
   const hand = h('div', { class: 'hand', style: `--n:${nHand}` }, (P[me].hand || []).map((c) => {
     const card = getCard(c.id);
-    const playable = (card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, card);
+    const playable = !c.dead && (card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, card);
     const el = cardEl(c.id, { size: 'hand', selected: app.sel === c.uid, dim: !playable || (myTurn && !playsLeft), uid: c.uid });
+    if (c.dead) el.classList.add('dead');
     // click = select, drag upward = play (Shadowverse style)
     const tap = (touch) => {      // tap = select, tap the selected card again = use it  (also what Enter/Space does on a focused card)
       // touch: a tap only selects (no accidental plays while browsing) -- use the 「使う」 button or drag the card upward
@@ -795,10 +796,10 @@ function gameScreen() {
 
   function mkZoom(selCard) {
     const sc = getCard(selCard.id), pop = app.zoomShown !== selCard.uid; app.zoomShown = selCard.uid;
-    const ok = (sc.type === 'chara' || (sc.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, sc);
+    const ok = !selCard.dead && (sc.type === 'chara' || (sc.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, sc);
     const touch = app.touchUi || isPhone();
     return h('div', { class: 'handzoom' + (pop ? ' pop' : '') }, cardEl(selCard.id, { size: 'zoom2' }),
-      h('div', { class: 'hz' }, !ok ? (sc.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '今は使えないカードです') : !canUse ? 'あなたのターンではありません'
+      h('div', { class: 'hz' }, selCard.dead ? '無効化されています (裏向き)・使えません' : !ok ? (sc.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '今は使えないカードです') : !canUse ? 'あなたのターンではありません'
         : touch ? '左右になぞると他のカードも見られます' : '👆 もう一度タップ / Enter で使う　・　Esc で戻す'),
       ok && canUse && touch && h('button', { class: 'pri hzuse', onclick: () => { app.sel = null; act({ t: 'play', uid: selCard.uid }); } }, '▶ このカードを使う'));
   }

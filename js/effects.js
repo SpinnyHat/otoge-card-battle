@@ -396,6 +396,24 @@ const seqAsk = (g, list, make, done) => { const one = (k) => { if (k >= list.len
 Object.assign(OPS, {
   // 対立: the opponent's die showed op.min or more -> the roller loses points
   // 「相手が自分より高い目を出したとき、引き直すか、カードを1枚引く」
+  // 芽兎めう: add any tendency of the owner's choice for ONE round of the song (asked once per song, optional)
+  chooseRoundTendency(g, ctx, op, next) {
+    const f = g.flags(ctx.p); if (f.mewUsed) return next();
+    const have = g.tendenciesOf(ctx.p), list = TENDENCIES.filter((t) => t !== 'NONE' && !have.includes(t));
+    if (!list.length) return next();
+    g.ask(ctx.p, { kind: 'pick', text: `${ctx.card.name}: このラウンドだけ、得意譜面傾向に追加する傾向を選べます (1曲に1回)`, optional: true, skipLabel: 'まだ使わない', choices: list.map((t) => ({ value: t, label: t })) }, (v) => {
+      if (v) { f.mewUsed = true; f.roundTend.push(v); g.log(`${g.name(ctx.p)} は このラウンドの得意傾向に ${v} を追加した (${ctx.card.name})`); }
+      next();
+    });
+  },
+  // みるく: once, one random card in an opponent's hand becomes face-down (cannot be used)
+  nullifyHand(g, ctx, op, next) {
+    if (ctx.inst?.spent) return next();
+    const cands = []; for (const o of g.opps(ctx.p)) for (const c of g.s.players[o].hand) if (!c.dead) cands.push([o, c]);
+    if (!cands.length) return next();
+    const [o, c] = pickOne(cands); c.dead = true; if (ctx.inst) ctx.inst.spent = true;
+    g.log(`${ctx.card.name}: ${g.name(o)} の手札の1枚が無効化 (裏向き) された`); next();
+  },
   oneUp(g, ctx, op, next) {
     const mine = g.s.song.rolls[ctx.p], last = mine[mine.length - 1];
     if (last == null || ctx.roll <= last) return next();

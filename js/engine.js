@@ -101,7 +101,7 @@ export class Game {
     if (this.s.song && this.flags(p).allTendencies) return TENDENCIES.slice();
     const grants = pl.won.map((c) => getCard(c.id).grantTendency).filter(Boolean);
     const f = this.s.song ? this.flags(p) : { tempTend: [], blocked: [] };
-    return [...new Set([...pl.tendencies, ...grants, ...f.tempTend])].filter((t) => !f.blocked.includes(t));
+    return [...new Set([...pl.tendencies, ...grants, ...f.tempTend, ...(f.roundTend || [])])].filter((t) => !f.blocked.includes(t));
   }
   addScore(p, label, v, opts = {}) {
     if (!v) return;
@@ -237,7 +237,7 @@ export class Game {
       no: s.songNo, sudden, task: { inst: cardInst, owner }, chooser, pass: 1,
       rolls: s.players.map(() => []), score: s.players.map(() => []), plays: s.players.map(() => 0), played: s.players.map(() => []),
       done: s.players.map(() => false), sflags: { allFemale: false, allMaimai: false },
-      flags: s.players.map(() => ({ bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, allTendencies: false, envy: false, immune: {}, tempTend: [], blocked: [] })),
+      flags: s.players.map(() => ({ bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, allTendencies: false, envy: false, immune: {}, tempTend: [], roundTend: [], blocked: [] })),
     };
     s.phase = 'song';
     this.log(sudden
@@ -308,6 +308,7 @@ export class Game {
     const i = hand.findIndex((c) => c.uid === a.uid);
     if (i < 0) return { ok: false, err: 'そのカードは手札にありません' };
     const card = this.card(hand[i]);
+    if (hand[i].dead) return { ok: false, err: 'このカードは無効化されています (裏向き)' };
     const max = this.R.maxPlaysPerTurn;
     if (max && s.song.plays[p] >= max) return { ok: false, err: `このターンに使えるカードは最大${max}枚です` };
     if (card.type === 'chara') {
@@ -335,6 +336,11 @@ export class Game {
       if (scoring) {                                            // "自分のスコアを増やすスキルを使う度" (e.g. 生命性シンドロウム)
         const tc = getCard(s.song.task.inst.id);
         for (const e2 of tc.effects || []) if (e2.when === 'skillScore') this.runOps({ p, card: tc, inst: null }, e2.ops);
+      }
+      for (const fi of [...s.players[p].field]) {                // 「○○系スキルカード使用時」 (珠洲島 有栖)
+        if (fi.faceDown) continue;
+        const fc = this.card(fi);
+        for (const e2 of fc.effects || []) if (e2.when === 'skillPlayed' && (card.tags || []).includes(e2.tag)) this.runOps({ p, card: fc, inst: fi, label: fc.name }, e2.ops);
       }
       if (s.song.skipNow) { s.song.skipNow = false; this.afterRolls(p); }     // 辞退: the turn is over, no roll
     };
@@ -416,7 +422,7 @@ export class Game {
     if (s.song.pass < this.R.turnsPerSong) {
       s.song.pass++;
       s.song.done = s.players.map(() => false);
-      for (const f of s.song.flags) Object.assign(f, { bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, immune: {} });   // per-turn effects end; allTendencies / envy last for the whole song
+      for (const f of s.song.flags) Object.assign(f, { bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, immune: {}, roundTend: [] });   // per-turn effects end; allTendencies / envy last for the whole song
       this.log(`── ラウンド ${s.song.pass} / ${this.R.turnsPerSong}`);
       const bonusDraw = this.R.drawBetweenRounds;
       if (bonusDraw) {

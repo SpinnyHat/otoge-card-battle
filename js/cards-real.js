@@ -56,10 +56,10 @@ export const realChara = [
 /* ------------------------------------------------------------------- skills */
 export const realSkills = [
   K({ id: 'all-girls', name: '全員女の子（ななひら）', text: ['1曲の間、場にいるキャラクターは全員女性キャラカードとして扱われる。'], effects: play({ op: 'flag', flag: 'allFemale', song: true }) }),
-  K({ id: 'ramen', name: 'ラーメン', text: ['このターンのスコアを＋1'], effects: play({ op: 'score', who: 'self', n: 1 }) }),
-  K({ id: 'jiro', name: '二郎系ラーメン', text: ['1ターンだけ全ての得意傾向を得られる代わりに、手札から1枚墓地に送る。'], effects: play({ op: 'flag', flag: 'allTendencies' }, { op: 'discardPick', n: 1 }) }),
-  K({ id: 'energy', name: 'エナドリ', text: ['スコア+2、手札を1枚墓地に送る。'], effects: play({ op: 'score', who: 'self', n: 2 }, { op: 'discardPick', n: 1 }) }),
-  K({ id: 'anmitsu', name: '餡蜜', text: ['スコアを-1して山札からカードを2枚引く。その後、課題曲が【PEAK】の場合にスコア+1。'],
+  K({ id: 'ramen', name: 'ラーメン', tags: ['food'], text: ['このターンのスコアを＋1'], effects: play({ op: 'score', who: 'self', n: 1 }) }),
+  K({ id: 'jiro', name: '二郎系ラーメン', tags: ['food'], text: ['1ターンだけ全ての得意傾向を得られる代わりに、手札から1枚墓地に送る。'], effects: play({ op: 'flag', flag: 'allTendencies' }, { op: 'discardPick', n: 1 }) }),
+  K({ id: 'energy', name: 'エナドリ', tags: ['food'], text: ['スコア+2、手札を1枚墓地に送る。'], effects: play({ op: 'score', who: 'self', n: 2 }, { op: 'discardPick', n: 1 }) }),
+  K({ id: 'anmitsu', name: '餡蜜', tags: ['food'], text: ['スコアを-1して山札からカードを2枚引く。その後、課題曲が【PEAK】の場合にスコア+1。'],
     effects: play({ op: 'score', who: 'self', n: -1 }, { op: 'draw', who: 'self', n: 2 }, { op: 'score', who: 'self', n: 1, cond: { taskTendency: ['PEAK'] } }) }),
   K({ id: 'easy-trill', name: 'イージートリル', text: ['スキル【トリル配置】と一緒に出すことで、得意傾向の曲のスコアが＋1される。必ずスキル【トリル配置】と一緒に出さないと効果は発動しない。'],
     effects: play({ op: 'score', who: 'self', n: 1, cond: { playedThis: 'trill-placement', taskFav: true } }) }),

@@ -175,3 +175,22 @@ console.log('1UP tests ok');
   assert.equal(g.s.players[0].grave.some((c) => c.id === 'elizabeth'), true);
 }
 console.log('balance-change tests ok');
+
+// ---- 芽兎めう / 珠洲島 有栖 / みるく / でらっくま
+{
+  g = setup({ task: NONE, field0: ['derakkuma'], hand0: [] });
+  const n0 = g.s.players[0].hand.length; assert.ok(n0 >= 1, 'でらっくま: draws 1 extra at round start');
+  g = setup({ task: NONE, field0: ['arisu'], hand0: ['ramen'] }); play(g, 0, 'ramen');
+  assert.equal(g.total(0), 2, '珠洲島 有栖: food skill (ラーメン +1) gets +1 more');
+  g = setup({ task: NONE, field0: ['arisu'], hand0: ['tsumikasane'] }); play(g, 0, 'tsumikasane');
+  assert.equal(g.total(0), 2, '...but a non-food skill (積み重ね +2) is unchanged');
+  g = setup({ task: NONE, field0: ['miruku'], hand1: ['ramen', 'energy'] });
+  assert.equal(g.s.players[1].hand.filter((c) => c.dead).length, 1, 'みるく: exactly one opposing hand card is nullified');
+  assert.equal(g.s.players[0].field[0].spent, true, '...and みるく is spent (only once)');
+  const dead = g.s.players[1].hand.find((c) => c.dead); g.act(0, { t: 'end' });
+  assert.equal(g.act(1, { t: 'play', uid: dead.uid }).ok, false, 'a nullified card cannot be played');
+  g = setup({ task: NONE, field0: ['meu'] });
+  assert.ok(g.s.prompt && g.s.prompt.player === 0 && g.s.prompt.choices.some((c) => c.value === 'PEAK'), 'めう: asks for a tendency');
+  answer(g, 'PEAK'); assert.ok(g.tendenciesOf(0).includes('PEAK'), 'めう: tendency added');
+}
+console.log('chara tests ok');

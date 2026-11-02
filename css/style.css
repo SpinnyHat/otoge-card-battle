@@ -624,3 +624,5 @@ button.rollnow{background:linear-gradient(180deg,#ffe066,#ff9d1c)!important;colo
 .wrap>.row:first-child,.game .table>.pbar:first-child{padding-right:2.9rem}
 .pool8{touch-action:pan-y}
 .pool8 .slot .mach{font-size:.72rem;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hslot .card.dead{filter:grayscale(1) brightness(.45)}
+.hslot .card.dead::after{content:'無効';position:absolute;inset:0;display:grid;place-items:center;font-weight:800;color:#fff;font-size:9cqw;text-shadow:0 2px 6px #000;background:repeating-linear-gradient(45deg,#0000 0 8px,#0004 8px 16px)}
