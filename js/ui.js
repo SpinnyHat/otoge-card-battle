@@ -697,8 +697,10 @@ function gameScreen() {
           const condOk = playCondViewOk(v, c);
           acts.push(h('button', { class: 'pri', disabled: !playable || !playsLeft || !condOk, onclick: () => { app.sel = null; act({ t: 'play', uid: sc.uid }); } }, !playable ? (c.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '効果未実装') : !condOk ? '使用条件を満たしていません' : !playsLeft ? '使用上限に達しました' : (c.type === 'chara' ? `「${c.name}」を場に出す` : `「${c.name}」を使う`)));
         }
-        acts.push(h('button', { class: sc ? '' : 'pri big', onclick: () => { app.sel = null; act({ t: 'end' }); } }, '🎲 サイコロを振って終了'));
-        if (!sc) info.push(h('div', { class: 'mute hint' }, 'カードは2回タップ / 上にドラッグで使用'));
+        // nothing else to do (play limit reached or no usable card in hand) -> make the dice button impossible to miss
+        const onlyRoll = !playsLeft || !P[me].hand.some((c) => { const cd = getCard(c.id); return (cd.type === 'chara' || (cd.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, cd); });
+        acts.push(h('button', { class: (sc && !onlyRoll ? '' : 'pri big') + (onlyRoll ? ' rollnow' : ''), onclick: () => { app.sel = null; act({ t: 'end' }); } }, '🎲 サイコロを振って終了'));
+        if (!sc) info.push(h('div', { class: 'mute hint' }, (app.touchUi || isPhone()) ? 'カードは左右になぞって確認 / 上にドラッグで使用' : 'カードは2回タップ / 上にドラッグで使用'));
       } else if (v.prompt && v.prompt.waiting) head.push(h('div', { class: 'mute' }, `${names[v.prompt.player]} が選択中…`));
       else head.push(h('div', { class: 'status' }, v.cur === me ? '…' : `${names[v.cur]} のターン`));
     }
@@ -711,16 +713,20 @@ function gameScreen() {
     const playable = (card.type === 'chara' || (card.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, card);
     const el = cardEl(c.id, { size: 'hand', selected: app.sel === c.uid, dim: !playable || (myTurn && !playsLeft), uid: c.uid });
     // click = select, drag upward = play (Shadowverse style)
-    const tap = () => {      // tap = select, tap the selected card again = use it  (also what Enter/Space does on a focused card)
-      if (app.sel === c.uid && canUse && playable) { app.sel = null; return act({ t: 'play', uid: c.uid }); }
+    const tap = (touch) => {      // tap = select, tap the selected card again = use it  (also what Enter/Space does on a focused card)
+      // touch: a tap only selects (no accidental plays while browsing) -- use the 「使う」 button or drag the card upward
+      if (!touch && app.sel === c.uid && canUse && playable) { app.sel = null; return act({ t: 'play', uid: c.uid }); }
       app.sel = app.sel === c.uid ? null : c.uid; play(app.sel ? 'select' : 'deselect'); render();
     };
     el.addEventListener('pointerdown', (e) => {
       if (e.button) return;
-      const x0 = e.clientX, y0 = e.clientY; let dragged = false;
+      const x0 = e.clientX, y0 = e.clientY, touch = e.pointerType !== 'mouse'; let dragged = false, scrub = false;
+      app.touchUi = touch;
       el.setPointerCapture(e.pointerId);
       const mv = (ev) => {
         const dx = ev.clientX - x0, dy = ev.clientY - y0;
+        if (touch && !dragged && !scrub && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) scrub = true;     // sideways swipe = look through the hand
+        if (scrub) { scrubAt(ev.clientX); return; }
         if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
           dragged = true; el.style.transition = 'none'; el.style.zIndex = 60;
           el.style.transform = `translate(${dx}px,${dy}px) scale(1.15)`;
@@ -729,13 +735,14 @@ function gameScreen() {
       };
       const up = (ev) => {
         el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up);
-        if (!dragged) return tap();
+        if (scrub) return;
+        if (!dragged) return tap(touch);
         if (canUse && playable && y0 - ev.clientY > 140) { app.sel = null; act({ t: 'play', uid: c.uid }); } else render();
       };
       el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
     });
     const slot = h('div', { class: 'hslot' + (app.sel === c.uid ? ' sel' : ''), title: card.name }, el);
-    slot.activate = tap;
+    slot.activate = () => tap(false);
     return slot;
   }));
 
@@ -765,16 +772,32 @@ function gameScreen() {
   g.addEventListener('click', (e) => { if (app.sel && !e.target.closest('.hslot, button, .actionp, .sidebar, .overlay')) { app.sel = null; render(); } });
   const o = [g];
   if (selCard && !veil) {
-    const sc = getCard(selCard.id), pop = app.zoomShown !== selCard.uid; app.zoomShown = selCard.uid;
-    const ok = (sc.type === 'chara' || (sc.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, sc);
-    o.push(h('div', { class: 'handzoom' + (pop ? ' pop' : '') }, cardEl(selCard.id, { size: 'zoom2' }),
-      h('div', { class: 'hz' }, !ok ? (sc.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '今は使えないカードです') : canUse ? '👆 もう一度タップ / Enter で使う　・　Esc で戻す' : 'あなたのターンではありません')));
+    o.push(mkZoom(selCard));
   } else app.zoomShown = null;
   const tip = coachTip(v); if (tip) { o.push(tip); app.tutTarget = TIPS.find((t) => !app.tut.seen[t.id] && t.when(v, me, app.tut.seen))?.target; } else app.tutTarget = null;
   if (v.prompt && !v.prompt.waiting) o.push(promptModal(v.prompt));
   if (v.phase === 'over' && !veil) o.push(overModal());
   return h('div', null, o);
 
+  function mkZoom(selCard) {
+    const sc = getCard(selCard.id), pop = app.zoomShown !== selCard.uid; app.zoomShown = selCard.uid;
+    const ok = (sc.type === 'chara' || (sc.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, sc);
+    const touch = app.touchUi || isPhone();
+    return h('div', { class: 'handzoom' + (pop ? ' pop' : '') }, cardEl(selCard.id, { size: 'zoom2' }),
+      h('div', { class: 'hz' }, !ok ? (sc.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '今は使えないカードです') : !canUse ? 'あなたのターンではありません'
+        : touch ? '左右になぞると他のカードも見られます' : '👆 もう一度タップ / Enter で使う　・　Esc で戻す'),
+      ok && canUse && touch && h('button', { class: 'pri hzuse', onclick: () => { app.sel = null; act({ t: 'play', uid: selCard.uid }); } }, '▶ このカードを使う'));
+  }
+  // swiping sideways over the hand: preview whichever card is under the finger, without re-rendering (that would drop the touch)
+  function scrubAt(x) {
+    const slots = [...document.querySelectorAll('.hslot')]; if (!slots.length) return;
+    let i = 0; slots.forEach((sl, k) => { if (x >= sl.getBoundingClientRect().left) i = k; });
+    const card = (P[me].hand || [])[i]; if (!card || app.sel === card.uid) return;
+    app.sel = card.uid; play('select');
+    slots.forEach((sl, k) => sl.classList.toggle('sel', k === i));
+    document.querySelector('.handzoom')?.remove();
+    document.querySelector('.game')?.parentNode.append(mkZoom(card));
+  }
   // (function declarations: promptModal() is called above this point, so these must be hoisted)
   function ownTag(o) { return o == null ? null : h('div', { class: 'owner-tag ' + (o === me ? 'mine' : 'theirs') }, o === me ? '🟦 あなたのカード' : '🟥 相手のカード'); }
   function effText(id, label, o) { const c = getCard(id); return h('div', { class: 'efftext' }, ownTag(o), h('b', null, label || c.name), h('ul', null, (c.text || []).map((t) => h('li', null, t)))); }
