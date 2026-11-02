@@ -31,7 +31,7 @@ g = setup({ task: 'ph-bms-4', hand0: ['anmitsu'] });   // PEAK
 const h0 = g.s.players[0].hand.length; play(g, 0, 'anmitsu'); assert.equal(sc(g, 0), 0, '-1 then +1 on PEAK'); assert.equal(g.s.players[0].hand.length, h0 - 1 + 2);
 g = setup({ task: NONE, hand0: ['anmitsu'] }); play(g, 0, 'anmitsu'); assert.equal(sc(g, 0), -1, 'no PEAK bonus');
 g = setup({ task: NONE, hand0: ['saving-xi'] }); play(g, 0, 'saving-xi'); assert.equal(sc(g, 0), 0, 'not behind -> no +10');
-g = setup({ task: NONE, hand0: ['saving-xi'] }); g.s.players[1].won.push(I('x')); play(g, 0, 'saving-xi'); assert.equal(sc(g, 0), 10, 'behind -> +10');
+g = setup({ task: NONE, hand0: ['saving-xi'] }); g.s.players[1].won.push(I('x')); play(g, 0, 'saving-xi'); assert.equal(sc(g, 0), 2, 'behind -> +2');
 
 // -- 2 plays per turn
 g = setup({ task: NONE, hand0: ['ramen', 'ramen', 'ramen'] }); play(g, 0, 'ramen'); play(g, 0, 'ramen');

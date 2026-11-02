@@ -163,3 +163,15 @@ console.log('face-down tests ok');
   assert.equal(g.s.players[0].hand.length, before + 1, '1UP: draw');
 }
 console.log('1UP tests ok');
+
+// ---- 2026-11-02 balance / wording changes
+{
+  g = setup({ task: NONE, hand0: ['saving-xi'] }); g.s.players[1].won.push(I('x')); const h0 = g.s.players[0].hand.length; play(g, 0, 'saving-xi');
+  assert.equal(g.s.players[0].hand.length, h0 - 1 + 1, '救xi: +2 AND draws one card (net hand size unchanged after playing it)');
+  g = setup({ task: 'ph-arcaea-1', field0: ['nitro'] }); assert.equal(E(g, 0, 'nitro').reduce((a, e) => a + e.v, 0), 2, 'nitro: Arcaea song = +2');
+  // フリーフォール: WACCA characters leave at the start of each round (first player's turn only)
+  g = setup({ task: 'free-fall', field0: ['elizabeth'], field1: ['lily'], rounds: 2 });
+  assert.equal(g.s.players[0].field.filter((c) => c.id === 'elizabeth').length, 0, 'フリーフォール: WACCA chara gone at round start');
+  assert.equal(g.s.players[0].grave.some((c) => c.id === 'elizabeth'), true);
+}
+console.log('balance-change tests ok');

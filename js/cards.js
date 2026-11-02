@@ -11,6 +11,7 @@
 //   placeholder: true -> invented filler so decks are legal; replace with real cards
 
 import { realChara, realSkills, realCharts, realMachines } from './cards-real.js';
+import { FORMAL } from './text-formal.js';
 import { slideChara, slideSkills, slideCharts, slideMachines } from './cards-slides.js';
 
 export const GAME_TITLE = 'Rhythm Card Battle';
@@ -164,6 +165,7 @@ for (const c of [...machines, ...chara, ...realChara, ...slideChara, ...skill, .
   if (CARDS[c.id]) throw new Error('duplicate card id ' + c.id);
   CARDS[c.id] = c;
 }
+for (const [id, text] of Object.entries(FORMAL)) { if (!CARDS[id]) throw new Error('FORMAL text for unknown card ' + id); CARDS[id].text = text; }
 export const getCard = (id) => CARDS[id];
 // a song can belong to several machines (e.g. a crossover): `machine` + optional `alsoMachines`
 export const machinesOf = (c) => [].concat(c.machine || [], c.alsoMachines || []);

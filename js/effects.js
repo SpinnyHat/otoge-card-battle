@@ -142,6 +142,7 @@ export function condOk(g, ctx, c) {
   const p = ctx.p, T = taskCard(g), mine = g.tendenciesOf(p);
   const tend = arr(T?.tendency);
   if (c.firstRound && g.s.song && g.s.song.pass !== 1) return false;
+  if (c.roundStart && g.s.song && g.s.song.done.some(Boolean)) return false;      // only for the first player's turn of a round
   if (c.taskTag && !arr(T?.tags).includes(c.taskTag)) return false;
   if (c.taskMachineNot && T && machinesOf(T).some((m) => c.taskMachineNot.includes(m))) return false;
   if (c.notUsed && (g.s.players[p].usedOnce || []).includes(ctx.card.id)) return false;
