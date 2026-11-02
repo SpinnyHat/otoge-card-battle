@@ -622,3 +622,4 @@ button.rollnow{background:linear-gradient(180deg,#ffe066,#ff9d1c)!important;colo
 #sndbtn:hover{opacity:1}
 .topbar,.home-top{padding-right:2.9rem}
 .wrap>.row:first-child,.game .table>.pbar:first-child{padding-right:2.9rem}
+.pool8{touch-action:pan-y}

@@ -448,8 +448,19 @@ function deckScreen() {
   };
   const grid = h('div', { class: 'pool8' }, list.slice(app.page * perPage(), app.page * perPage() + perPage()).map(slot),
     !list.length && h('div', { class: 'mute', style: 'grid-column:1/-1;align-self:center;text-align:center' }, '条件に合うカードがありません'));
-  let wheelT = 0;
+  let wheelT = 0, swallowClick = 0;
   grid.addEventListener('wheel', (e) => { e.preventDefault(); if (Date.now() - wheelT < 220) return; wheelT = Date.now(); go(app.page + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
+
+  // phone: swipe the card grid left / right to change page (swipe left = next page)
+  let sw = null;
+  grid.addEventListener('touchstart', (e) => { const t = e.touches[0]; sw = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, t: Date.now() } : null; }, { passive: true });
+  grid.addEventListener('touchend', (e) => {
+    if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, q = sw; sw = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - q.t > 800) return;
+    const n = app.page + (dx < 0 ? 1 : -1); if (n < 0 || n > pages - 1) return;
+    swallowClick = Date.now(); go(n);
+  }, { passive: true });
+  grid.addEventListener('click', (e) => { if (Date.now() - swallowClick < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const editor = h('div', { class: 'panel editor' },
     h('div', { class: 'row' },
