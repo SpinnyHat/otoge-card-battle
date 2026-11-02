@@ -442,7 +442,7 @@ function deckScreen() {
       h('div', { class: 'stepper' },
         h('button', { disabled: n === 0, onclick: () => mutate((x) => { x[key].splice(x[key].indexOf(c.id), 1); }) }, '－'), h('b', null, n),
         h('button', { disabled: !canAdd, title: machineOk ? '' : '先に機種カードを選んでください', onclick: () => mutate((x) => x[key].push(c.id)) }, '＋'),
-        key === 'chart' && h('span', { class: 'mute', style: 'font-size:.72rem' }, machinesOf(c).join('/'))));
+        key === 'chart' && (() => { const ms = machinesOf(c); return h('span', { class: 'mute mach', title: ms.join(' / ') }, ms[0] + (ms.length > 1 ? ` +${ms.length - 1}` : '')); })()));
     sl._zoom = () => zoomCard(list, list.indexOf(c));
     return sl;
   };
