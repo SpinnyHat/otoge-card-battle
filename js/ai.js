@@ -1,7 +1,7 @@
 // CPU opponent. Works on the same sanitized view a human gets (no cheating).
 // levels: easy = plays at random, normal = plays most cards, hard = plays everything useful and picks well.
 import { getCard } from './cards.js';
-import { playCondViewOk } from './effects.js';
+import { playCondViewOk, skillLockedView } from './effects.js';
 
 export const LEVELS = { easy: 'かんたん', normal: 'ふつう', hard: 'つよい' };
 
@@ -30,7 +30,7 @@ export function botAct(view, level = 'normal') {
   if (view.phase === 'song' && view.cur === me && view.stage === 'main') {
     const max = view.rules.maxPlays;
     if (max && view.song.plays[me] >= max) return { t: 'end' };
-    const cards = mine.hand.map((c) => ({ c, d: getCard(c.id) })).filter((x) => canPlay(x.d) && playCondViewOk(view, x.d));
+    const cards = mine.hand.map((c) => ({ c, d: getCard(c.id) })).filter((x) => canPlay(x.d) && playCondViewOk(view, x.d) && !skillLockedView(view, me, x.d));
     const p = level === 'easy' ? 0.4 : level === 'normal' ? 0.7 : 1;
     if (level !== 'hard') {
       const pick = [...cards].sort(() => Math.random() - 0.5).find(() => Math.random() < p);

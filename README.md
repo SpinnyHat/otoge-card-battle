@@ -9,6 +9,7 @@
 node test/engine.test.mjs       # CPU同士で500戦、デッドロック/不正手が無いか
 node test/host.test.mjs         # ロビー〜対戦〜再接続のプロトコル
 node test/cards.test.mjs        # スライドのカードがテキスト通りに動くか (カードごとのシナリオ)
+node test/slides.test.mjs       # 画像だけで書かれていたスライドのカード (QQ・皆伝・スロット等) の動作
 node test/fuzz.test.mjs         # 全カードからランダムにデッキを組んで800戦 (効果のクラッシュ/固まり検出)
 node test/ai.test.mjs           # CPUの強さの順序
 node test/assets.test.mjs       # 画像の著作権ガード (許可リスト)

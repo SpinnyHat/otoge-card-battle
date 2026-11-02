@@ -2,7 +2,7 @@
 import { getCard } from './cards.js';
 
 const WHEN = {
-  react: '相手が「ゴママヨ」の効果を発動する際 (自動で確認されます)', ability: '課題曲の間、任意のタイミングで (ボタンで発動)', turnStart: '自分のターン開始時 (各曲の最初のラウンドのみ)', diceRoll: 'サイコロを振る際', play: 'このカードを使用した時', resolve: 'リザルトを出す時',
+  oppRoll: '相手がサイコロを振った時', react: '相手が「ゴママヨ」の効果を発動する際 (自動で確認されます)', ability: '課題曲の間、任意のタイミングで (ボタンで発動)', turnStart: '自分のターン開始時 (各曲の最初のラウンドのみ)', diceRoll: 'サイコロを振る際', play: 'このカードを使用した時', resolve: 'リザルトを出す時',
   songStart: 'この楽曲が課題曲に選ばれた時', scoreGain: '自分のスコアが増える効果を得る度', skillScore: '自分のスコアを増やすスキルを使う度',
 };
 const ZONE = { grave: '(墓地にある間)', field: '(場にある間)', task: '(課題曲として選ばれている間)' };
@@ -50,7 +50,7 @@ const OP = {
   recover: () => '墓地のスキルカードを1枚選んで手札に加える',
   mulligan: () => '手札を全て山札に戻してシャッフルし、同じ枚数を引く',
   steal: () => '相手の手札からランダムに1枚奪う',
-  flag: (o) => ({ allFemale: '1曲の間、場のキャラ全員を女性として扱う', allTendencies: 'この曲の間、全ての得意傾向を得る', drawOnRoll: 'この番、サイコロを振るたびに1枚引く', envy: 'この曲で相手のリザルトが高かった場合、次の曲のスコア＋3', allMaimai: '場の全てのカードの機種をmaimaiとして扱う' }[o.flag] || o.flag),
+  flag: (o) => ({ scoreDouble: 'この曲の両プレイヤーのスコアが2倍になる', noDebuff: 'この曲の間、デバフ(減点)効果は無効になる', diceOnly: 'この曲の間、サイコロ以外でスコアは増えない', allFemale: '1曲の間、場のキャラ全員を女性として扱う', allTendencies: 'この曲の間、全ての得意傾向を得る', drawOnRoll: 'この番、サイコロを振るたびに1枚引く', envy: 'この曲で相手のリザルトが高かった場合、次の曲のスコア＋3', allMaimai: '場の全てのカードの機種をmaimaiとして扱う' }[o.flag] || o.flag),
   extraRolls: (o) => `${WHO[o.who] || '自分'}はこの番サイコロを${o.n}回多く振る`,
   lockPlays: () => 'このターンは、もうカードを使えなくなる',
   doubleRolls: () => 'この番サイコロを振れる回数が2倍になる',
@@ -71,6 +71,35 @@ const OP = {
   revive: () => '自分の墓地からキャラカードを1枚ランダムに手札へ戻す',
   yoshitaka: () => 'スコア＋2。3回目の発動時はスコアが無効になり、このカードを墓地に送る',
   aether: () => 'CHUNITHM/arcaeaキャラの数だけスコア＋、光が手札にある時さらに＋3',
+  penalizeRoller: (o) => `出目が${o.min}以上なら、振った相手のスコア${o.n}`,
+  scoreByFieldName: (o) => `自分の場にある「${o.text}」が含まれるカード1枚につきスコア＋1`,
+  leaderPenalty: (o) => `スコアが最も高いプレイヤーのスコアを${o.n > 0 ? '＋' : '－'}${Math.abs(o.n)}`,
+  scoreCountEach: (o) => `各プレイヤーは、自分の場の${[o.nameIncludes ? `「${o.nameIncludes}」と名のつくキャラ` : '', o.tag ? `${o.tag}キャラ` : ''].filter(Boolean).join('及び')}の枚数×1点を得る`,
+  scoreIfLackFav: (o) => `${o.t}が得意譜面傾向に含まれていないプレイヤーのスコア${o.n}`,
+  scoreIfLackField: (o) => `${o.tag}のキャラを場に出していないプレイヤーのスコア${o.n}`,
+  scoreIfFieldHas: (o) => `場にキャラ【${o.name}】がいるプレイヤーのスコア＋${o.n}`,
+  scoreWon: (o) => `自分が獲得した${(o.inc || []).join('/')}の曲1つにつき＋${o.per || 1}${o.dec ? `、${o.dec.join('/')}の曲1つにつき${o.decPer}` : ''}`,
+  tempTendency: (o) => `この曲の間、得意傾向に ${o.t.join('/')} を追加する`,
+  blockTendency: (o) => `相手の得意傾向 ${o.t} を打ち消す`,
+  dieEvenTendency: (o) => `サイコロを振り、偶数なら得意傾向に ${o.t} も追加する`,
+  drawIfFav: (o) => `得意傾向が ${o.tends.join('/')} のプレイヤーは1枚引く`,
+  addTaskMachine: (o) => `この楽曲の収録機種に ${o.id} を追加する`,
+  drawByCount: (o) => `各プレイヤーは、自分の場の${o.tag}カードの枚数分山札を引く`,
+  drawByName: (o) => `各プレイヤーは、自分の場の「${o.text}」を含むカードの枚数分山札を引く`,
+  chartToTop: (o) => `譜面山札から【${nm(o.id)}】を1枚、一番上に置き、残りを切る`,
+  clearFields: () => '各プレイヤーは、場のカードを全て墓地へ送る',
+  peekTop: (o) => `各プレイヤーは自分の山札を上から${o.n}枚見る`,
+  returnHandForScore: () => '各プレイヤーは手札を好きな枚数山札に戻して切り、戻した枚数×1点を得る',
+  fieldPenalty: (o) => `各プレイヤーは場のカードの枚数×1点失う。失った点が${o.loseAt}以上なら敗北する`,
+  randomDice: (o) => `各プレイヤーはサイコロを${o.rolls}回振り、合計×1/3点(四捨五入)を得る`,
+  angelExile: () => 'サイコロ5回: 奇数なら自分＋1 / 偶数なら最下位に＋2 / 1が4回なら他全員から1点ずつ奪う / 1が5回なら他全員のスコアが0',
+  devilBirth: () => 'サイコロ5回の合計で分岐: 30=3の倍数の人は脱落 / 25以上=偶数の人−2 / 24以下=全員の最大の加算が無効',
+  witchHunt: () => 'サイコロ1回: 奇数=最高点の人が選曲者に1点渡す / 偶数=最高点の人が最低点の人に2点渡す。削除関係のカードを持つ人は−1',
+  slotRoll: () => 'サイコロを3回(中央/右リールがあるほど少なく)振り、全て同じなら＋7。1回以下になるとサイコロなしで＋7',
+  narukaSwap: () => '勝っているなら自分のスコアを1.5倍に、負けているなら自分と相手のスコアを入れ替える (ゲーム中1度だけ)',
+  sopinPenalty: () => '5点以上リードしているプレイヤーのスコアを−2',
+  skipTurn: () => '課題曲カードを1枚捨てて、このターンをスキップする (サイコロを振らない)',
+  penalizeRollerX: () => '',
   negate: () => '相手が発動した「ゴママヨ」の効果を1度だけ無効化する (永続効果はそのターン限定)',
   beam: () => '場のキャラ1枚、またはどちらかの山札の一番上を選んで墓地に置く',
   sacrifice: () => '自分のキャラ1枚を墓地に置く。そうしたら、可能な場合、相手も自分のキャラを墓地に置く',
@@ -87,6 +116,7 @@ export function describeEffects(card) {
 export function statusOf(card) {
   const out = [];
   if (card.wip) out.push({ k: 'wip', t: '効果未実装' }); else if (card.type !== 'machine') out.push({ k: 'ok', t: '実装済み' });
+  if (card.partial) out.push({ k: 'wip', t: '一部のみ実装' });
   if (card.placeholder) out.push({ k: 'ph', t: '仮カード' });
   if (card.unverified) out.push({ k: 'uv', t: '要確認 (スライドに無い項目を推測)' });
   if (card.token) out.push({ k: 'tk', t: 'トークン (デッキ不可)' });

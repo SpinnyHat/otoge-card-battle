@@ -11,6 +11,7 @@
 //   placeholder: true -> invented filler so decks are legal; replace with real cards
 
 import { realChara, realSkills, realCharts, realMachines } from './cards-real.js';
+import { slideChara, slideSkills, slideCharts, slideMachines } from './cards-slides.js';
 
 export const GAME_TITLE = 'Rhythm Card Battle';
 
@@ -31,7 +32,7 @@ const art = (n) => `assets/art/${n}.jpg`;
 const machines = [
   ['maimai', 'maimai', '#e8a0c0'], ['ongeki', 'オンゲキ', '#b8c4ff'], ['gfdm', 'ギタドラ/ドラマニ', '#d0182c'],
   ['arcaea', 'Arcaea', '#d9d3f0'], ['bms', 'BMS', '#bbbbbb'], ['sdvx', 'SDVX', '#8ad0ff'],
-].concat(realMachines.map(([id, name, theme]) => [id, name, theme])).map(([id, name, theme]) => ({
+].concat(realMachines.concat(slideMachines).map(([id, name, theme]) => [id, name, theme])).map(([id, name, theme]) => ({
   id, type: 'machine', name, theme, source: '機種', footer: '機種カード', attr: 'menu', placeholder: true,
   group: ['gfdm', 'sdvx', 'ddr', 'beatmania'].includes(id) ? 'bemani' : null,
   text: ['この機種の譜面を山札に入れられる。(固有効果は未定)'], effects: [],
@@ -156,9 +157,9 @@ const placeholderCharts = [
 
 /* --------------------------------------------------------------- catalogue */
 export const CARDS = {};
-const slideCharts = realCharts;
+
 const oldReal = [...realCharts0];
-for (const c of [...machines, ...chara, ...realChara, ...skill, ...realSkills, ...oldReal, ...slideCharts, ...placeholderCharts]) {
+for (const c of [...machines, ...chara, ...realChara, ...slideChara, ...skill, ...realSkills, ...slideSkills, ...oldReal, ...realCharts, ...slideCharts, ...placeholderCharts]) {
   if (CARDS[c.id]) throw new Error('duplicate card id ' + c.id);
   CARDS[c.id] = c;
 }

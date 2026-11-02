@@ -20,7 +20,7 @@ const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
 
 export const OPS = {
   score(g, ctx, op, next) {
-    for (const p of g.who(ctx, op.who)) g.addScore(p, op.label || ctx.card.name, op.n);
+    for (const p of g.who(ctx, op.who)) g.addScore(p, op.label || ctx.card.name, op.n, { force: !!op.force });
     next();
   },
   resultScore(g, ctx, op, next) {
@@ -63,6 +63,7 @@ export const OPS = {
       if (v != null) {
         const ch = choices.find((c) => c.value === v);
         const f = g.s.players[ch.owner].field;
+        if (protectedCard(g, ch.owner, f.find((x) => x.uid === v))) { g.log('そのカードは場を離れない (スロットの中央リール)'); return next(); }
         const [c] = f.splice(f.findIndex((x) => x.uid === v), 1);
         g.s.players[ch.owner].grave.push({ uid: c.uid, id: c.id });
         g.log(`${g.name(ctx.p)}: ${g.cname(c)} を墓地に捨てた`);
@@ -141,12 +142,18 @@ export function condOk(g, ctx, c) {
   const p = ctx.p, T = taskCard(g), mine = g.tendenciesOf(p);
   const tend = arr(T?.tendency);
   if (c.firstRound && g.s.song && g.s.song.pass !== 1) return false;
+  if (c.taskTag && !arr(T?.tags).includes(c.taskTag)) return false;
+  if (c.taskMachineNot && T && machinesOf(T).some((m) => c.taskMachineNot.includes(m))) return false;
+  if (c.notUsed && (g.s.players[p].usedOnce || []).includes(ctx.card.id)) return false;
+  if (c.hasChart && !g.s.players[p].charts.length) return false;
+  if (c.notNoSkip && T?.noSkip) return false;
+  if (c.scoreRule === 'naruka') { const o = g.opps(p)[0]; const a = g.total(p), b = g.total(o); if (!(a > b || b >= 2 * a)) return false; }
   if (c.notSpent && ctx.inst && ctx.inst.spent) return false;
   if (c.notJustPlayed && ctx.inst && ctx.inst.since === g.s.songNo) return false;
   if (c.behind && !(g.s.players[p].won.length < Math.max(0, ...g.opps(p).map((o) => g.s.players[o].won.length)))) return false;
   if (c.taskTendency && !tend.some((t) => c.taskTendency.includes(t))) return false;
   if (c.taskFav && !tend.some((t) => mine.includes(t))) return false;
-  if (c.taskMachine && !(T && (g.s.song.sflags.allMaimai ? 'maimai' === c.taskMachine : machinesOf(T).includes(c.taskMachine)))) return false;
+  if (c.taskMachine && !(T && (g.s.song.sflags.allMaimai ? 'maimai' === c.taskMachine : machinesOf(T).includes(c.taskMachine) || (g.s.song.sflags.addMachines || []).includes(c.taskMachine)))) return false;
   if (c.taskMachineIn && !(T && machinesOf(T).some((m) => c.taskMachineIn.includes(m)))) return false;
   if (c.taskGroup && !(T && machinesOf(T).some((m) => MACHINE_GROUP[m] === c.taskGroup))) return false;
   if (c.taskComposer && !arr(T?.composer).includes(c.taskComposer)) return false;
@@ -172,11 +179,20 @@ export function playCondViewOk(view, card) {
   if (!T) return false;
   if (c.firstRound && view.song.pass !== 1) return false;
   if (c.taskMachineIn && !machinesOf(T).some((m) => c.taskMachineIn.includes(m))) return false;
+  if (c.taskGroup && !machinesOf(T).some((m) => MACHINE_GROUP[m] === c.taskGroup)) return false;
+  const me = view.players[view.you];
+  if (c.notUsed && (me.usedOnce || []).includes(card.id)) return false;
+  if (c.hasChart && !me.chartCount) return false;
+  if (c.notNoSkip && T.noSkip) return false;
+  if (c.scoreRule === 'naruka') { const a = view.song.totals[view.you], b = Math.max(...view.song.totals.filter((_, i) => i !== view.you)); if (!(a > b || b >= 2 * a)) return false; }
   return true;
 }
 
 /* ================================================================ more operations */
+// スロットの左リール cannot leave the field while スロットの中央リール is out
+const protectedCard = (g, q, inst) => inst.id === 'slot-left' && g.s.players[q].field.some((i) => i.id === 'slot-center' && !i.faceDown);
 const toGrave = (g, q, inst) => {
+  if (protectedCard(g, q, inst)) { g.log(`${g.cname(inst)} は場を離れない (スロットの中央リール)`); return; }
   const f = g.s.players[q].field, i = f.findIndex((x) => x.uid === inst.uid);
   if (i >= 0) f.splice(i, 1);
   g.s.players[q].grave.push({ uid: inst.uid, id: inst.id });
@@ -190,6 +206,7 @@ Object.assign(OPS, {
     for (const q of side(g, ctx.p, op.who === 'any' ? 'any' : 'self')) for (const i of charasOf(g, q)) {
       const cd = getCard(i.id); if (hasTag(g, cd, op.tag) || (op.female && hasTag(g, cd, 'female'))) n++;
     }
+    n = Math.floor(n / (op.step || 1));
     if (n) g.addScore(ctx.p, `${ctx.card.name} (×${n})`, n * (op.per || 1));
     next();
   },
@@ -349,5 +366,175 @@ Object.assign(OPS, {
       else { const [c] = pl.hand.splice(pl.hand.findIndex((x) => x.uid === v), 1); pl.grave.push(c); g.log(`${g.name(ctx.p)}: ${g.cname(c)} を墓地に置いた`); }
       next();
     });
+  },
+});
+
+
+/* ============================================================ skill locks (game + view versions) */
+function lockReason(fields, taskId, taskMachines, p, card) {
+  if (card.type !== 'skill') return null;
+  if (fields[p].includes('karameru')) return 'からめるが場にいる間、スキルカードは使えません';
+  if (fields.some((f) => f.includes('nuinui-grace')) && !taskMachines.includes('sdvx')) return 'ぬいぬいグレイスが場にいる間、SDVX以外の課題曲ではスキルカードを使えません';
+  if (taskId === 'kita-saitama2000' && !arr(card.tags).includes('taiko')) return 'この課題曲の間は〈太鼓の達人〉カード以外のスキルカードを使えません';
+  return null;
+}
+export function skillLockReason(g, p, card) {
+  const T = taskCard(g);
+  return lockReason(g.s.players.map((pl) => pl.field.filter((i) => !i.faceDown).map((i) => i.id)), T.id, machinesOf(T), p, card);
+}
+export function skillLockedView(view, me, card) {
+  if (!view.song) return null;
+  const T = getCard(view.song.taskId);
+  return lockReason(view.players.map((pl) => pl.field.filter((i) => !i.faceDown && i.id).map((i) => i.id)), T.id, machinesOf(T), me, card);
+}
+
+/* ======================================================== operations for the slide cards */
+const rollN = (g, n) => Array.from({ length: n }, () => g.die());
+const seqAsk = (g, list, make, done) => { const one = (k) => { if (k >= list.length || g.over()) return done(); make(list[k], () => one(k + 1)); }; one(0); };
+
+Object.assign(OPS, {
+  // 対立: the opponent's die showed op.min or more -> the roller loses points
+  penalizeRoller(g, ctx, op, next) { if (ctx.roll >= op.min) g.addScore(ctx.roller, ctx.card.name, op.n); next(); },
+  leaderPenalty(g, ctx, op, next) {
+    const ps = alive(g), best = Math.max(...ps.map((i) => g.total(i))), top = ps.filter((i) => g.total(i) === best);
+    if (top.length === 1) g.addScore(top[0], ctx.card.name, op.n);
+    next();
+  },
+  scoreCountEach(g, ctx, op, next) {
+    for (const q of alive(g)) {
+      let n = 0;
+      for (const i of charasOf(g, q)) { const cd = getCard(i.id); if ((op.tag && hasTag(g, cd, op.tag)) || (op.nameIncludes && cd.name.includes(op.nameIncludes))) n++; }
+      if (n) g.addScore(q, `${ctx.card.name} (×${n})`, n * (op.per || 1));
+    }
+    next();
+  },
+  scoreByFieldName(g, ctx, op, next) {
+    const n = g.s.players[ctx.p].field.filter((i) => !i.faceDown && g.cname(i).includes(op.text)).length;
+    if (n) g.addScore(ctx.p, `${ctx.card.name} (×${n})`, n);
+    next();
+  },
+  scoreIfLackFav(g, ctx, op, next) { for (const q of alive(g)) if (!g.tendenciesOf(q).includes(op.t)) g.addScore(q, `${ctx.card.name} (${op.t}なし)`, op.n); next(); },
+  scoreIfLackField(g, ctx, op, next) { for (const q of alive(g)) if (!charasOf(g, q).some((i) => hasTag(g, getCard(i.id), op.tag))) g.addScore(q, ctx.card.name, op.n); next(); },
+  scoreIfFieldHas(g, ctx, op, next) { for (const q of alive(g)) if (charasOf(g, q).some((i) => g.cname(i) === op.name)) g.addScore(q, ctx.card.name, op.n); next(); },
+  scoreWon(g, ctx, op, next) {
+    const won = g.s.players[ctx.p].won.map((c) => arr(getCard(c.id).tendency));
+    const inc = won.filter((t) => t.some((x) => (op.inc || []).includes(x))).length;
+    const dec = won.filter((t) => t.some((x) => (op.dec || []).includes(x))).length;
+    if (inc) g.addScore(ctx.p, `${ctx.card.name} (+${inc}曲)`, inc * (op.per || 1));
+    if (dec) g.addScore(ctx.p, `${ctx.card.name} (−${dec}曲)`, dec * (op.decPer || -1));
+    next();
+  },
+  tempTendency(g, ctx, op, next) { const f = g.flags(ctx.p); for (const t of op.t) if (!f.tempTend.includes(t)) f.tempTend.push(t); g.log(`${g.name(ctx.p)} は得意傾向に ${op.t.join('/')} を一時的に追加`); next(); },
+  blockTendency(g, ctx, op, next) {
+    for (const q of g.opps(ctx.p)) { const f = g.flags(q); if (!f.blocked.includes(op.t)) f.blocked.push(op.t); }
+    g.log(`相手の得意傾向 ${op.t} を打ち消した`); next();
+  },
+  dieEvenTendency(g, ctx, op, next) {
+    const d = g.die(); g.log(`${g.name(ctx.p)}: 出目 ${d}`);
+    if (d % 2 === 0) { const f = g.flags(ctx.p); if (!f.tempTend.includes(op.t)) f.tempTend.push(op.t); g.s.players[ctx.p].tendencies.includes(op.t) || g.s.players[ctx.p].tendencies.push(op.t); g.log(`偶数！ 得意傾向に ${op.t} も追加`); }
+    next();
+  },
+  drawIfFav(g, ctx, op, next) { for (const q of alive(g)) if (g.tendenciesOf(q).some((t) => op.tends.includes(t))) { if (!g.draw(q, 1)) return; } next(); },
+  addTaskMachine(g, ctx, op, next) { (g.s.song.sflags.addMachines ||= []).push(op.id); g.log(`この楽曲の収録機種に ${op.id} が加わった`); next(); },
+  drawByCount(g, ctx, op, next) { for (const q of alive(g)) { const n = charasOf(g, q).filter((i) => hasTag(g, getCard(i.id), op.tag)).length; if (n && !g.draw(q, n)) return; } next(); },
+  drawByName(g, ctx, op, next) { for (const q of alive(g)) { const n = g.s.players[q].field.filter((i) => !i.faceDown && g.cname(i).includes(op.text)).length; if (n && !g.draw(q, n)) return; } next(); },
+  chartToTop(g, ctx, op, next) {
+    const pile = g.s.players[ctx.p].charts, i = pile.findIndex((c) => c.id === op.id);
+    if (i >= 0) { const [c] = pile.splice(i, 1); g.shuffle(pile); pile.push(c); g.log(`${g.name(ctx.p)} は譜面山札の一番上に ${g.cname(c)} を置いて切った`); }
+    next();
+  },
+  clearFields(g, ctx, op, next) { for (const q of alive(g)) for (const i of [...g.s.players[q].field]) toGrave(g, q, i); next(); },
+  peekTop(g, ctx, op, next) {
+    seqAsk(g, alive(g), (q, again) => {
+      const top = g.s.players[q].pile.slice(-op.n).reverse();
+      if (!top.length) return again();
+      g.ask(q, { kind: 'pick', text: `${ctx.card.name}: 自分の山札の上${top.length}枚を確認 (どれを選んでも何も起きません)`, optional: true, skipLabel: '確認した', choices: top.map((c) => ({ value: c.uid, label: g.cname(c), cardId: c.id, owner: q })) }, () => again());
+    }, next);
+  },
+  returnHandForScore(g, ctx, op, next) {
+    seqAsk(g, alive(g), (q, again) => {
+      const pl = g.s.players[q], max = Math.min(pl.hand.length, 6);
+      if (!max) return again();
+      const choices = Array.from({ length: max + 1 }, (_, n) => ({ value: n, label: `${n}枚` }));
+      g.ask(q, { kind: 'pick', text: `${ctx.card.name}: 手札を何枚山札に戻しますか？ (戻した枚数×1点)`, choices }, (n) => {
+        for (let k = 0; k < n; k++) { const [c] = pl.hand.splice(g.rand(pl.hand.length), 1); pl.pile.push(c); }
+        if (n) { g.shuffle(pl.pile); g.addScore(q, `${ctx.card.name} (${n}枚)`, n); g.log(`${g.name(q)} は手札${n}枚を山札に戻した`); }
+        again();
+      });
+    }, next);
+  },
+  fieldPenalty(g, ctx, op, next) {
+    for (const q of alive(g)) {
+      const lost = g.s.players[q].field.length;
+      if (lost) g.addScore(q, `${ctx.card.name} (場${lost}枚)`, -lost);
+      if (lost >= op.loseAt) { g.lose(q, `${ctx.card.name} (場のカード${lost}枚)`); if (g.over()) return; }
+    }
+    next();
+  },
+  randomDice(g, ctx, op, next) {
+    for (const q of alive(g)) { const d = rollN(g, op.rolls), sum = d.reduce((a, b) => a + b, 0), pts = Math.round(sum * op.mult); g.log(`${g.name(q)}: ${d.join(' ')} → 合計${sum} → +${pts}`); g.addScore(q, ctx.card.name, pts); }
+    next();
+  },
+  angelExile(g, ctx, op, next) {
+    const p = ctx.p, d = rollN(g, 5), ones = d.filter((x) => x === 1).length, sum = d.reduce((a, b) => a + b, 0), others = g.opps(p);
+    g.log(`${g.name(p)}: ${d.join(' ')} (合計${sum})`);
+    if (ones >= 5) { for (const o of others) g.addScore(o, `${ctx.card.name}(追放成立)`, -g.total(o)); }
+    else if (ones === 4) { for (const o of others) { g.addScore(o, ctx.card.name, -1); g.addScore(p, ctx.card.name, 1); } }
+    else if (sum % 2 === 1) g.addScore(p, ctx.card.name, 1);
+    else if (others.length) { const low = others.reduce((a, b) => (g.total(b) < g.total(a) ? b : a)); g.addScore(low, ctx.card.name, 2); }
+    next();
+  },
+  devilBirth(g, ctx, op, next) {
+    const d = rollN(g, 5), S = d.reduce((a, b) => a + b, 0);
+    g.log(`${g.name(ctx.p)}: ${d.join(' ')} (合計${S})`);
+    if (S >= 30) { for (const q of alive(g)) if (g.total(q) % 3 === 0) { g.addScore(q, `${ctx.card.name}(脱落)`, -g.total(q)); g.log(`${g.name(q)} は脱落`); } }
+    else if (S >= 25) { for (const q of alive(g)) if (g.total(q) % 2 === 0) g.addScore(q, ctx.card.name, -2); }
+    else {
+      for (const q of alive(g)) {
+        const list = g.s.song.score[q], cand = list.filter((e) => e.v > 0 && !e.label.startsWith('サイコロ'));
+        if (cand.length) { const big = cand.reduce((a, b) => (b.v > a.v ? b : a)); list.splice(list.indexOf(big), 1); g.log(`${g.name(q)} の加算「${big.label}」が無効になった`); }
+      }
+    }
+    next();
+  },
+  witchHunt(g, ctx, op, next) {
+    const p = ctx.p, d = g.die(), ps = alive(g), tot = (i) => g.total(i);
+    const top = ps.reduce((a, b) => (tot(b) > tot(a) ? b : a)), low = ps.reduce((a, b) => (tot(b) < tot(a) ? b : a));
+    g.log(`${g.name(p)}: 出目 ${d}`);
+    if (d % 2 === 1) { if (top !== p) { g.addScore(top, ctx.card.name, -1); g.addScore(p, ctx.card.name, 1); } }
+    else if (top !== low) { g.addScore(top, ctx.card.name, -2); g.addScore(low, ctx.card.name, 2); }
+    for (const q of ps) {
+      const pl = g.s.players[q];
+      if ([...pl.hand, ...pl.field].some((c) => ['sakujo', 'sakujo-beam'].includes(c.id))) g.addScore(q, `${ctx.card.name}(削除関係)`, -1);
+    }
+    next();
+  },
+  slotRoll(g, ctx, op, next) {
+    const p = ctx.p, T = taskCard(g);
+    if (arr(T?.composer).includes('Rough Sketch')) { g.addScore(p, ctx.card.name, 7); return next(); }
+    const n = 3 - charasOf(g, p).filter((i) => ['slot-center', 'slot-right'].includes(i.id)).length;
+    if (n <= 1) { g.log(`${g.name(p)}: リールが揃った！`); g.addScore(p, ctx.card.name, 7); return next(); }
+    const d = rollN(g, n); g.log(`${g.name(p)}: スロット ${d.join(' ')}`);
+    if (d.every((x) => x === d[0])) g.addScore(p, `${ctx.card.name} (ゾロ目)`, 7);
+    next();
+  },
+  narukaSwap(g, ctx, op, next) {
+    const p = ctx.p, o = g.opps(p)[0], a = g.total(p), b = g.total(o);
+    if (a > b) { g.addScore(p, ctx.card.name, Math.floor(a * 0.5)); g.log(`${g.name(p)} のスコアが1.5倍になった`); }
+    else { const L = g.s.song.score; [L[p], L[o]] = [L[o], L[p]]; g.log('スコアを入れ替えた！'); }
+    next();
+  },
+  sopinPenalty(g, ctx, op, next) {
+    const ps = alive(g);
+    for (const q of ps) if (ps.some((o) => o !== q && g.total(q) - g.total(o) >= 5)) g.addScore(q, ctx.card.name, -2);
+    next();
+  },
+  skipTurn(g, ctx, op, next) {
+    const pl = g.s.players[ctx.p];
+    if (!pl.charts.length) return next();
+    const c = pl.charts.pop(); pl.grave.push(c);
+    g.s.song.skipNow = true;
+    g.log(`${g.name(ctx.p)} は課題曲カード ${g.cname(c)} を捨ててこのターンをスキップした`);
+    next();
   },
 });

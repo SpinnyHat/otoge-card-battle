@@ -1,7 +1,7 @@
 // Pure game logic. Host-authoritative: only the host constructs a Game; clients get sanitized views.
 // Built for N players (turn order is by seat), but only 2-player flow is exercised/tested for now.
 import { getCard, TENDENCIES, machinesOf } from './cards.js';
-import { OPS, condOk as fxCond } from './effects.js';
+import { OPS, condOk as fxCond, skillLockReason } from './effects.js';
 
 export const GOMAMAYO_COUNTER = 'gomamayo-yokushi';
 
@@ -12,6 +12,7 @@ export const RULES = {
   songsPerCredit: 5, winsNeeded: 3,
   postSongDraw: 2,
   turnTimeLimit: 60,      // seconds a human has per turn to choose cards (online play); 0 = no limit. Enforced by the host, not here.
+  drawBetweenRounds: 1,   // every player draws this many cards when a round ends (not after the last round: the post-song draw covers that)
   turnsPerSong: 2,        // rounds per song: each round every player plays up to maxPlaysPerTurn cards then rolls; scores add up
   maxPlaysPerTurn: 2,     // cards (chara or skill) a player may play per turn; 0 = unlimited
   tendencyBonus: 1, tendencyBothBonus: 2,
@@ -65,7 +66,7 @@ export class Game {
         name: names[i], tendencies: [d.tendency], machines: [...d.machines],
         pile: this.shuffle([...d.chara, ...d.skill].map(mk)),
         charts: this.shuffle(d.chart.map(mk)),
-        hand: [], field: [], grave: [], won: [], rolled: null, out: false,
+        hand: [], field: [], grave: [], won: [], rolled: null, out: false, usedOnce: [],
       })),
       allCharts: [...new Set(decks.flatMap((d) => d.chart))],
       song: null, prompt: null, drawAns: null, lastRoll: null, lastResult: null, winner: null, reason: '', log: [],
@@ -99,11 +100,15 @@ export class Game {
     const pl = this.s.players[p];
     if (this.s.song && this.flags(p).allTendencies) return TENDENCIES.slice();
     const grants = pl.won.map((c) => getCard(c.id).grantTendency).filter(Boolean);
-    return [...new Set([...pl.tendencies, ...grants])];
+    const f = this.s.song ? this.flags(p) : { tempTend: [], blocked: [] };
+    return [...new Set([...pl.tendencies, ...grants, ...f.tempTend])].filter((t) => !f.blocked.includes(t));
   }
   addScore(p, label, v, opts = {}) {
     if (!v) return;
     if (v < 0 && this.flags(p).immune[label]) return;
+    const sf = this.s.song.sflags;
+    if (v < 0 && !opts.dice && sf.noDebuff) { this.log(`${label}: デバフは無効化された (Halcyon)`); return; }
+    if (v > 0 && !opts.dice && !opts.force && sf.diceOnly) return;                    // World's End rule: only the dice can raise the score
     this.s.song.score[p].push({ label, v });
     if (v > 0 && !opts.dice && !this.inGain) {          // "自分のスコアが増える効果を得る度" (e.g. Reku Mochizuki)
       this.inGain = true;
@@ -232,7 +237,7 @@ export class Game {
       no: s.songNo, sudden, task: { inst: cardInst, owner }, chooser, pass: 1,
       rolls: s.players.map(() => []), score: s.players.map(() => []), plays: s.players.map(() => 0), played: s.players.map(() => []),
       done: s.players.map(() => false), sflags: { allFemale: false, allMaimai: false },
-      flags: s.players.map(() => ({ bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, allTendencies: false, envy: false, immune: {} })),
+      flags: s.players.map(() => ({ bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, allTendencies: false, envy: false, immune: {}, tempTend: [], blocked: [] })),
     };
     s.phase = 'song';
     this.log(sudden
@@ -314,11 +319,13 @@ export class Game {
     }
     if (card.type !== 'skill') return { ok: false, err: 'このカードは使えません' };
     const ef = (card.effects || []).find((e) => e.when === 'play');
+    if (card.type === 'skill') { const lock = skillLockReason(this, p, card); if (lock) return { ok: false, err: lock }; }
     if (card.reactOnly) return { ok: false, err: 'このカードは、相手が「ゴママヨ」の効果を発動した時に自動で確認されます' };
     if (!ef) return { ok: false, err: 'このカードの効果は未実装です' };
     if (ef.playCond && !fxCond(this, { p, card, inst: null }, ef.playCond)) return { ok: false, err: 'いまは使えません (使用条件を満たしていません)' };
     const [inst] = hand.splice(i, 1);
     s.song.plays[p]++; s.song.played[p].push(card.id);
+    if (ef.once) s.players[p].usedOnce.push(card.id);
     this.log(`${this.name(p)} は ${card.name} を使った`);
     const ctx = { p, inst, card };
     const scoring = ef.ops.some((o) => o.op === 'score' && o.who === 'self' && o.n > 0);
@@ -329,6 +336,7 @@ export class Game {
         const tc = getCard(s.song.task.inst.id);
         for (const e2 of tc.effects || []) if (e2.when === 'skillScore') this.runOps({ p, card: tc, inst: null }, e2.ops);
       }
+      if (s.song.skipNow) { s.song.skipNow = false; this.afterRolls(p); }     // 辞退: the turn is over, no roll
     };
     this.maybeNegate(p, card, () => this.runOps(ctx, ef.ops, after), () => s.players[p].grave.push({ uid: inst.uid, id: inst.id }));
     return { ok: true };
@@ -371,6 +379,11 @@ export class Game {
       this.addScore(p, 'サイコロ', val, { dice: true });
       if (f.bonus) this.addScore(p, 'サイコロ補正', f.bonus, { dice: true });
       s.lastRoll = { p, v: val, seq: ++s.seq };
+      for (const q of this.opps(p)) for (const inst of [...s.players[q].field]) {       // 「相手のダイスの出目が○以上の時」
+        if (inst.faceDown) continue;
+        const cd = this.card(inst);
+        for (const ef of cd.effects || []) if (ef.when === 'oppRoll') this.runOps({ p: q, inst, card: cd, roll: val, roller: p }, ef.ops);
+      }
       this.log(`${this.name(p)} のサイコロ: ${val}${f.bonus ? ` (補正${f.bonus > 0 ? '+' : ''}${f.bonus})` : ''}`);
       if (f.drawOnRoll && !this.draw(p, 1)) return;
       this.rollN(p, left - 1, false);
@@ -398,6 +411,11 @@ export class Game {
       s.song.done = s.players.map(() => false);
       for (const f of s.song.flags) Object.assign(f, { bonus: 0, best: false, forced: null, extra: 0, mult: 1, rerolls: 0, drawOnRoll: false, immune: {} });   // per-turn effects end; allTendencies / envy last for the whole song
       this.log(`── ラウンド ${s.song.pass} / ${this.R.turnsPerSong}`);
+      const bonusDraw = this.R.drawBetweenRounds;
+      if (bonusDraw) {
+        for (const q of s.players.map((x, i) => i).filter((i) => !s.players[i].out)) if (!this.draw(q, bonusDraw)) return;
+        this.log(`ラウンド終了: 全員が山札から${bonusDraw}枚引いた`);
+      }
       const first = s.players[s.song.chooser].out ? s.players.findIndex((x) => !x.out) : s.song.chooser;
       this.beginTurn(first);
       return;
@@ -416,12 +434,22 @@ export class Game {
       const b = matchers.length > 1 ? this.R.tendencyBothBonus : this.R.tendencyBonus;
       this.addScore(i, `得意傾向 ${ctend.join('/')}`, b);
     }
-    for (const ef of card.effects || []) {
-      if (ef.when !== 'resolve') continue;
-      const ctx = { p: song.task.owner ?? song.chooser, card, inst: null };
-      if (fxCond(this, ctx, ef.cond)) this.runOps(ctx, ef.ops);
-    }
+    // song effects may ask the players questions: run them in order and continue once every answer is in
+    const effs = (card.effects || []).filter((e) => e.when === 'resolve');
+    const run = (k) => {
+      if (this.over()) return;
+      if (k >= effs.length) return this.finishResolve();
+      const ef = effs[k], ctx = { p: song.task.owner ?? song.chooser, card, inst: null };
+      if (!fxCond(this, ctx, ef.cond)) return run(k + 1);
+      this.runOps(ctx, ef.ops, () => run(k + 1));
+    };
+    run(0);
+  }
+
+  finishResolve() {
+    const s = this.s, song = s.song, card = getCard(song.task.inst.id);
     const alive = () => s.players.map((x, i) => i).filter((i) => !s.players[i].out);
+    if (song.sflags.scoreDouble) for (const i of alive()) this.addScore(i, '舞高ドリームセッション ×2', this.total(i));
     let tops;
     for (let guard = 0; guard < 50; guard++) {
       const best = Math.max(...alive().map((i) => this.total(i)));
@@ -432,10 +460,20 @@ export class Game {
     }
     const w = tops[0];
     const totals = s.players.map((x, i) => this.total(i));
-    s.players[w].won.push(song.task.inst);
+    const others = alive().filter((i) => i !== w);
+    if (card.loserKeeps && others.length) {        // ウソテイ: the song goes to the loser, the winner takes one of the loser's songs
+      const l = others[0], stolen = s.players[l].won.pop();
+      if (stolen) { s.players[w].won.push(stolen); this.log(`${this.name(w)} は ${this.name(l)} の獲得曲 ${getCard(stolen.id).name} を奪った`); }
+      s.players[l].won.push(song.task.inst);
+    } else s.players[w].won.push(song.task.inst);
     s.players.forEach((pl, i) => { if (i !== w && song.flags[i].envy) { pl.nextBonus = (pl.nextBonus || 0) + 3; this.log(`${pl.name}: 妬みで次の曲のスコア+3`); } });
     s.lastResult = { songNo: song.no, cardId: card.id, totals, winner: w };
     this.log(`第${song.no}曲の結果 ${totals.join(' - ')} → ${this.name(w)} の勝ち！`);
+    for (const ef of card.effects || []) {
+      if (ef.when === 'won') this.runOps({ p: w, card, inst: null }, ef.ops);
+      if (ef.when === 'songEnd') this.runOps({ p: song.task.owner ?? song.chooser, card, inst: null }, ef.ops);
+    }
+    if (this.over()) return;
     if (s.players[w].won.length >= this.R.winsNeeded) {
       s.phase = 'over'; s.winner = [w]; s.reason = `${this.R.winsNeeded}曲先取`;
       this.log(`${this.name(w)} の勝利！`);
@@ -484,7 +522,7 @@ export function viewFor(g, seat) {
       hand: i === seat ? p.hand.map((c) => ({ ...c })) : null,
       field: p.field.map((c) => pub(c, i !== seat)),
       grave: p.grave.map((c) => ({ ...c })),
-      won: p.won.map((c) => ({ ...c })),
+      won: p.won.map((c) => ({ ...c })), usedOnce: p.usedOnce || [],
     })),
     song: s.song && {
       no: s.song.no, sudden: s.song.sudden, chooser: s.song.chooser, owner: s.song.task.owner, taskId: s.song.task.inst.id,

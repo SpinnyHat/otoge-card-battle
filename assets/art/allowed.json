@@ -51,5 +51,21 @@
   "reisis.jpg": {
     "creator": "TODO confirm",
     "status": "レイシス (owner-provided illustration, OK per owner)"
+  },
+  "konaste.jpg": {
+    "creator": "TODO confirm",
+    "status": "コナステ (owner says OK)"
+  },
+  "kaiden.jpg": {
+    "creator": "TODO confirm",
+    "status": "皆伝 (owner says OK)"
+  },
+  "nuinui.jpg": {
+    "creator": "TODO confirm",
+    "status": "ぬいぬいグレイス (owner says OK; cropped to exclude the SDVX logo)"
+  },
+  "valmacia.jpg": {
+    "creator": "TODO confirm",
+    "status": "ヴァルマシアゴーストちゃん (owner-provided card image)"
   }
 }

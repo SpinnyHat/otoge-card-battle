@@ -547,6 +547,7 @@ function rulesScreen() {
         li(`最初に手札を${R.handSize}枚引き、サイコロを振って一番大きい人が最初の課題曲を選びます。以降は交互に選曲。`),
         li('課題曲を選んだプレイヤーから先に行動。手札のカードは好きなだけ使えます。スキルは使うと墓地へ、キャラは場に残ります。'),
         li(R.maxPlaysPerTurn ? `1ターンに使えるカードは最大${R.maxPlaysPerTurn}枚 (キャラを場に出すのも1枚)。ルームの設定で変更できます。` : '1ターンに使えるカードの枚数に制限なし。'),
+        R.turnsPerSong > 1 && R.drawBetweenRounds && li(`ラウンドが終わるたびに、全員が山札から${R.drawBetweenRounds}枚引きます (最後のラウンドの後は、曲の終わりのドロー選択になります)。`),
         R.turnsPerSong > 1 && li('「ターン開始時」の効果は各曲の最初のラウンドだけ発動します (サイコロを振る時の効果は毎ラウンド)。'),
         li(R.turnsPerSong > 1 ? `1曲は${R.turnsPerSong}ラウンド。各ラウンドで両者が「カードを最大${R.maxPlaysPerTurn || '∞'}枚使う → サイコロを振る」を行い、${R.turnsPerSong}ラウンド分の合計がその曲のスコア(リザルト)。同点なら振り直し。` : '自分のターンの終わりにサイコロを振り、出目 + スキル等の加算が その曲のスコア(リザルト)。同点なら振り直し。'),
         li(`スコアが高い方が課題曲カードを獲得。曲の終わりに両者が山札から最大${R.postSongDraw}枚まで引けます。`),
@@ -583,6 +584,7 @@ function gameScreen() {
   const names = v.names || P.map((p) => p.name);
   const veil = performance.now() < (app.revealAt || 0) && (v.phase === 'draw' || v.phase === 'over');   // outcome held back for the "判定中…" build-up
 
+  const stat2 = (icon, val, title, cls = '') => h('span', { class: 'stat2 ' + cls, title }, h('span', { class: 'si' }, icon), h('b', null, val));
   const pbar = (i) => {
     const p = P[i];
     return h('div', { class: 'pbar' + (v.phase === 'song' && v.cur === i ? ' turn' : '') },
@@ -590,15 +592,14 @@ function gameScreen() {
       v.song && v.song.owner === i ? h('span', { class: 'sel-tag', title: '今回の課題曲を選んだプレイヤー' }, '🎵 選曲') : null,
       app.timer?.players?.includes(i) ? h('span', { class: 'timer' }, `⏱ ${tleft()}`) : null,
       p.won.length === v.rules.winsNeeded - 1 && h('span', { class: 'matchpt' }, 'MATCH POINT'),
-      h('span', { class: 'stat' }, '傾向 ', h('b', null, p.tendencies.join('/'))),
-      h('span', { class: 'stat' }, '手札 ', h('b', null, p.handCount)),
-      h('span', { class: 'stat' }, '山札 ', h('b', null, p.pileCount)),
-      h('span', { class: 'stat' }, '譜面 ', h('b', null, p.chartCount)),
-      h('span', { class: 'stat click', onclick: () => showZone(`${names[i]} の墓地`, p.grave) }, '墓地 ', h('b', null, p.grave.length)),
+      h('span', { class: 'stat2 tend', title: `得意譜面傾向: ${p.tendencies.join(' / ')}` }, p.tendencies.slice(0, 3).map((t) => h('span', { class: 'tt' }, h('img', { class: 'ti', src: `assets/icons/${TENDENCY_ICON[t] || 'half'}.png`, alt: t }), h('small', null, t)))),
+      stat2('🃏', p.handCount, '手札の枚数'),
+      stat2('📚', p.pileCount, '山札の残り枚数 (0で敗北)', p.pileCount <= 4 ? 'low' : ''),
+      stat2('💿', p.chartCount, '譜面山札の残り枚数'),
+      h('span', { class: 'stat2 click', title: `${names[i]} の墓地 (クリックで中身を見る)`, onclick: () => showZone(`${names[i]} の墓地`, p.grave) }, h('span', { class: 'si' }, '🪦'), h('b', null, p.grave.length)),
       h('div', { class: 'grow' }),
-      h('span', { class: 'stat' }, '獲得曲 '),
       h('div', { class: 'won' }, p.won.map((c) => cardEl(c.id, { size: 'xs' }))),
-      h('b', { style: 'font-size:1.2rem' }, `${p.won.length}/${v.rules.winsNeeded}`));
+      h('span', { class: 'stat2 wins', title: `獲得した課題曲 (${v.rules.winsNeeded}曲で勝利)` }, h('span', { class: 'si' }, '🏆'), h('b', null, `${p.won.length}/${v.rules.winsNeeded}`)));
   };
   const fieldRow = (i) => h('div', { class: 'field ' + (i === me ? 'f-mine' : 'f-theirs') }, h('span', { class: 'fieldlabel' }, i === me ? 'あなたの場' : '相手の場'), P[i].field.length ? P[i].field.map((c) => cardEl(c.id || null, { size: 'field', faceDown: c.faceDown, uid: c.uid, spent: c.spent })) : h('span', { class: 'hint' }, '場にキャラはいません'));
 
@@ -701,13 +702,23 @@ function gameScreen() {
 
   keys.hook = (e) => {
     const k = e.key.toLowerCase();
+    if (k === 'escape' && app.sel && !app.logOpen) { app.sel = null; render(); return true; }
     if (k === 'l' || (k === 'escape' && app.logOpen)) { app.logOpen = !app.logOpen; render(); return true; }
     const main = () => document.querySelector('.coach .pri') || document.querySelector('.actionp .acts button.pri') || document.querySelector('.actionp .acts button:last-child');
     if (k === 'e' || ((k === 'enter' || k === ' ') && (!document.activeElement || document.activeElement === document.body))) { const b = main(); if (b && !b.disabled) { b.click(); return true; } }
     if (/^[1-9]$/.test(k) && (P[me].hand || [])[+k - 1]) { app.sel = P[me].hand[+k - 1].uid; play('select'); render(); document.querySelectorAll('.hslot')[+k - 1]?.focus({ preventScroll: true }); return true; }
     return false;
   };
+  // selected hand card -> enlarged in the centre of the screen (tap it again / Enter to use it)
+  const selCard = app.sel && (P[me].hand || []).find((c) => c.uid === app.sel);
+  g.addEventListener('click', (e) => { if (app.sel && !e.target.closest('.hslot, button, .actionp, .sidebar, .overlay')) { app.sel = null; render(); } });
   const o = [g];
+  if (selCard && !veil) {
+    const sc = getCard(selCard.id), pop = app.zoomShown !== selCard.uid; app.zoomShown = selCard.uid;
+    const ok = (sc.type === 'chara' || (sc.effects || []).some((e) => e.when === 'play')) && playCondViewOk(v, sc);
+    o.push(h('div', { class: 'handzoom' + (pop ? ' pop' : '') }, cardEl(selCard.id, { size: 'zoom2' }),
+      h('div', { class: 'hz' }, !ok ? (sc.reactOnly ? '相手のゴママヨ発動時に自動で使えます' : '今は使えないカードです') : canUse ? '👆 もう一度タップ / Enter で使う　・　Esc で戻す' : 'あなたのターンではありません')));
+  } else app.zoomShown = null;
   const tip = coachTip(v); if (tip) { o.push(tip); app.tutTarget = TIPS.find((t) => !app.tut.seen[t.id] && t.when(v, me, app.tut.seen))?.target; } else app.tutTarget = null;
   if (v.prompt && !v.prompt.waiting) o.push(promptModal(v.prompt));
   if (v.phase === 'over' && !veil) o.push(overModal());

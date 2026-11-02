@@ -373,3 +373,23 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
 .card.t-chara:has(.spent) .art{filter:grayscale(.7) brightness(.75)}
 
 .judging{color:#ffd36a;font-size:1.25rem;animation:throb .8s infinite}
+
+/* selected hand card, enlarged in the centre */
+.card.size-zoom2{--w:min(380px,46vh)}
+.handzoom{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);z-index:25;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.6rem;filter:drop-shadow(0 18px 40px #000d)}
+.handzoom.pop{animation:selpop .28s cubic-bezier(.2,1.2,.4,1)}
+.handzoom .hz{background:#000c;color:#fff;padding:.25rem .9rem;border-radius:99px;font-size:.85rem;white-space:nowrap}
+@keyframes selpop{from{transform:translate(-50%,calc(-50% + 38vh)) scale(.35);opacity:.2}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+
+/* status bar badges (icons instead of words) */
+.stat2{display:inline-flex;align-items:center;gap:.4rem;padding:.12rem .65rem;border-radius:99px;background:#ffffff10;border:1px solid #ffffff1c;font-size:1.05rem;line-height:1.2}
+.stat2 .si{font-size:1.2rem;line-height:1}
+.stat2 b{font-size:1.15rem;font-variant-numeric:tabular-nums;min-width:1ch;text-align:center}
+.stat2.click{cursor:pointer}.stat2.click:hover{border-color:var(--b)}
+.stat2.low{border-color:var(--bad);background:#ff6b6b22}.stat2.low b{color:var(--bad);animation:throb 1s infinite}
+.stat2.wins{border-color:#ffd36a88;background:#ffd36a14}.stat2.wins b{color:#ffd36a;font-size:1.3rem}
+.stat2.tend{gap:.7rem}
+.stat2 .tt{display:inline-flex;align-items:center;gap:.3rem}
+.stat2 .ti{width:1.35rem;height:1.35rem;background:#fff;border-radius:50%}
+.stat2 small{font-size:.72rem;color:var(--mute);letter-spacing:.03em}
+.pbar .won .card{--w:26px}
