@@ -152,7 +152,7 @@ export const slideCharts = [
     text: ['TRICKYが得意譜面傾向に含まれてないプレイヤーのスコアを-2'], effects: [{ when: 'resolve', ops: [{ op: 'scoreIfLackFav', t: 'TRICKY', n: -2 }] }] }),
   M({ id: 'baseline', name: 'ベースラインやってる？笑', machine: 'sdvx', tendency: 'NONE', composer: ['かめりあ feat. ななひら'], attr: 'menu', footer: '電波', flavor: 'ねえねえ君〜そこのぎゃんかわ女子〜',
     text: ['自分の場にある女性キャラクター1枚に付きスコア-1'], effects: [{ when: 'resolve', ops: [{ op: 'scoreCount', who: 'self', tag: 'female', per: -1 }] }] }),
-  M({ id: 'you-make-my-life-1up', name: 'You Make My Life 1UP', machine: 'musedash', tendency: 'NONE', unverified: true, tags: [],
+  M({ id: 'you-make-my-life-1up', name: 'You Make My Life 1UP', art: art('1up'), machine: 'musedash', tendency: 'NONE', unverified: true, tags: [],
     text: ['相手が自分より高い目を出したとき、自分は引き直すことを選べる、またはカードを一枚引く。'],
     effects: [{ when: 'oppRoll', ops: [{ op: 'oneUp' }] }] }),
   M({ id: 'saitama2000', name: 'さいたま2000', machine: 'taiko', tendency: 'NOTES', composer: ['LindaAI-CUE'], footer: '2000', tags: ['2000'],
