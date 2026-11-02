@@ -256,7 +256,7 @@ export class Game {
   beginTurn(p) {
     const s = this.s;
     s.cur = p; s.stage = 'start';
-    s.song.plays[p] = 0;
+    s.song.plays[p] = 0; s.song.played[p] = [];
     this.log(`${this.name(p)} のターン${this.R.turnsPerSong > 1 ? ` (${s.song.pass}/${this.R.turnsPerSong}ラウンド)` : ''}`);
     const pen = this.R.firstActorPenalty;
     if (pen && p === s.song.chooser && s.song.pass === 1) this.addScore(p, '先行ペナルティ', -pen);

@@ -194,3 +194,17 @@ console.log('balance-change tests ok');
   answer(g, 'PEAK'); assert.ok(g.tendenciesOf(0).includes('PEAK'), 'めう: tendency added');
 }
 console.log('chara tests ok');
+
+// ---- ぐるん: +2 at turn end if a ゲキチュウマイ card was used, +2 more if a からめる is on anyone's field
+{
+  const gu = (g, p) => g.s.song.score[p].filter((e) => e.label.startsWith('ぐるん')).reduce((a, e) => a + e.v, 0);
+  g = setup({ task: NONE, field0: ['gurun'], hand0: ['ramen'] }); play(g, 0, 'ramen'); g.act(0, { t: 'end' }); while (g.s.prompt) answer(g, null);
+  assert.equal(gu(g, 0), 0, 'ぐるん: ラーメン is not a ゲキチュウマイ card -> no bonus');
+  g = setup({ task: NONE, field0: ['gurun'], hand0: ['valmacia-ghost'] }); play(g, 0, 'valmacia-ghost'); g.act(0, { t: 'end' });
+  assert.equal(gu(g, 0), 2, 'ぐるん: a CHUNITHM card was used -> +2');
+  g = setup({ task: NONE, field0: ['gurun'], field1: ['karameru'] }); g.act(0, { t: 'end' });
+  assert.equal(gu(g, 0), 2, 'ぐるん: からめる on a field -> +2');
+  g = setup({ task: NONE, field0: ['gurun'], field1: ['karameru'], hand0: ['valmacia-ghost'] }); play(g, 0, 'valmacia-ghost'); g.act(0, { t: 'end' });
+  assert.equal(gu(g, 0), 4, 'ぐるん: both -> +4');
+}
+console.log('gurun tests ok');

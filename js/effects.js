@@ -163,6 +163,7 @@ export function condOk(g, ctx, c) {
   if (c.taskCollab && !arr(T?.collab).includes(c.taskCollab)) return false;
   if (c.taskId && T?.id !== c.taskId) return false;
   if (c.favHasAll && !c.favHasAll.every((t) => mine.includes(t))) return false;
+  if (c.playedAnyTag && !(g.s.song?.played[p] || []).some((id) => (getCard(id)?.tags || []).some((t) => c.playedAnyTag.includes(t)))) return false;      // a card with one of these tags was used this turn
   if (c.playedThis && !(g.s.song?.played[p] || []).includes(c.playedThis)) return false;
   if (c.fieldHas) {
     const { who = 'self', name, tag } = c.fieldHas;
