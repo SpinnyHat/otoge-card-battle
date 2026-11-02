@@ -394,6 +394,18 @@ const seqAsk = (g, list, make, done) => { const one = (k) => { if (k >= list.len
 
 Object.assign(OPS, {
   // 対立: the opponent's die showed op.min or more -> the roller loses points
+  // 「相手が自分より高い目を出したとき、引き直すか、カードを1枚引く」
+  oneUp(g, ctx, op, next) {
+    const mine = g.s.song.rolls[ctx.p], last = mine[mine.length - 1];
+    if (last == null || ctx.roll <= last) return next();
+    g.ask(ctx.p, { kind: 'pick', text: `${ctx.card.name}: 相手が ${ctx.roll} を出しました (自分の出目は ${last})。どちらかを選べます`, optional: true, skipLabel: '何もしない',
+      choices: [{ value: 'reroll', label: `自分のサイコロを引き直す (今: ${last})` }, { value: 'draw', label: '山札から1枚引く' }] }, (v) => {
+      if (v === 'reroll') {
+        const nv = g.die(); mine[mine.length - 1] = nv; g.addScore(ctx.p, ctx.card.name, nv - last, { dice: true });
+        g.s.lastRoll = { p: ctx.p, v: nv, seq: ++g.s.seq }; g.log(`${g.name(ctx.p)} は引き直した ${last} → ${nv}`); next();
+      } else if (v === 'draw') { if (g.draw(ctx.p, 1)) next(); } else next();
+    });
+  },
   penalizeRoller(g, ctx, op, next) { if (ctx.roll >= op.min) g.addScore(ctx.roller, ctx.card.name, op.n); next(); },
   leaderPenalty(g, ctx, op, next) {
     const ps = alive(g), best = Math.max(...ps.map((i) => g.total(i))), top = ps.filter((i) => g.total(i) === best);

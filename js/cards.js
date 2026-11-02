@@ -36,6 +36,7 @@ const machines = [
   id, type: 'machine', name, theme, source: '機種', footer: '機種カード', attr: 'menu', placeholder: true,
   group: ['gfdm', 'sdvx', 'ddr', 'beatmania'].includes(id) ? 'bemani' : null,
   text: ['この機種の譜面を山札に入れられる。(固有効果は未定)'], effects: [],
+  ...(id === 'arcaea' ? { art: art('arcaea') } : {}),
 }));
 
 /* ------------------------------------------------------------------- chara */

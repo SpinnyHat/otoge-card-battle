@@ -62,10 +62,30 @@
   },
   "nuinui.jpg": {
     "creator": "TODO confirm",
-    "status": "ぬいぬいグレイス (owner says OK; cropped to exclude the SDVX logo)"
+    "status": "ぬいぬいグレイス (owner-provided plush photo, replaced 2026-11-02)"
   },
   "valmacia.jpg": {
     "creator": "TODO confirm",
     "status": "ヴァルマシアゴーストちゃん (owner-provided card image)"
+  },
+  "arcaea.jpg": {
+    "creator": "TODO confirm",
+    "status": "Arcaea machine card image (owner-provided hand drawing)"
+  },
+  "meu.jpg": {
+    "creator": "TODO confirm",
+    "status": "芽兎めう (owner-provided illustration)"
+  },
+  "arisu.jpg": {
+    "creator": "TODO confirm",
+    "status": "珠洲島 有栖 (owner-provided illustration)"
+  },
+  "miruku.jpg": {
+    "creator": "TODO confirm",
+    "status": "みるく (owner-provided illustration)"
+  },
+  "derakkuma.jpg": {
+    "creator": "TODO confirm",
+    "status": "でらっくま (owner-provided illustration)"
   }
 }

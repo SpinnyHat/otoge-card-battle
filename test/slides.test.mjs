@@ -150,3 +150,16 @@ console.log('round-draw / レイシス / 対立 tests ok');
   gg.beginTurn(0); gg.pump(); assert.equal(gg.s.prompt, null, 'and a face-down card never triggers');
 }
 console.log('face-down tests ok');
+
+// ---- You Make My Life 1UP: when the opponent rolls higher than me, I may re-roll my die or draw a card
+{
+  const seq = [2, 5, 6, 1]; let k = 0;
+  g = setup({ task: 'you-make-my-life-1up', die: () => seq[k++ % seq.length] });
+  g.act(0, { t: 'end' }); g.act(1, { t: 'end' });
+  let guard = 0; while (!g.s.prompt && guard++ < 5) g.pump();
+  assert.ok(g.s.prompt && g.s.prompt.player === 0, '1UP asks the player who rolled lower');
+  const before = g.s.players[0].hand.length;
+  answer(g, 'draw');
+  assert.equal(g.s.players[0].hand.length, before + 1, '1UP: draw');
+}
+console.log('1UP tests ok');

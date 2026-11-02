@@ -379,14 +379,21 @@ export class Game {
       this.addScore(p, 'サイコロ', val, { dice: true });
       if (f.bonus) this.addScore(p, 'サイコロ補正', f.bonus, { dice: true });
       s.lastRoll = { p, v: val, seq: ++s.seq };
-      for (const q of this.opps(p)) for (const inst of [...s.players[q].field]) {       // 「相手のダイスの出目が○以上の時」
+      const hooks = [];       // 「相手のダイスの出目が○以上の時」 (run one after another: some of them ask a question)
+      for (const q of this.opps(p)) for (const inst of [...s.players[q].field]) {
         if (inst.faceDown) continue;
         const cd = this.card(inst);
-        for (const ef of cd.effects || []) if (ef.when === 'oppRoll') this.runOps({ p: q, inst, card: cd, roll: val, roller: p }, ef.ops);
+        for (const ef of cd.effects || []) if (ef.when === 'oppRoll') hooks.push({ p: q, inst, card: cd, roll: val, roller: p, ops: ef.ops });
       }
+      const tk = getCard(s.song.task.inst.id);       // the current chart can react to opponents' rolls too (for every other player)
+      for (const ef of tk.effects || []) if (ef.when === 'oppRoll') for (const q of this.opps(p)) hooks.push({ p: q, inst: null, card: tk, roll: val, roller: p, ops: ef.ops });
+      const cont = () => {
       this.log(`${this.name(p)} のサイコロ: ${val}${f.bonus ? ` (補正${f.bonus > 0 ? '+' : ''}${f.bonus})` : ''}`);
       if (f.drawOnRoll && !this.draw(p, 1)) return;
       this.rollN(p, left - 1, false);
+      };
+      const runHook = (k) => { if (k >= hooks.length) return cont(); const h = hooks[k]; this.runOps(h, h.ops, () => runHook(k + 1)); };
+      runHook(0);
     };
     const attempt = (val) => {
       if (f.rerolls > 0) {

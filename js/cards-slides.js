@@ -13,6 +13,10 @@ const M = (c) => ({ type: 'chart', unverified: true, footer: [].concat(c.tendenc
 
 /* ------------------------------------------------------------------ characters */
 export const slideChara = [
+  C({ id: 'meu', name: '芽兎めう', art: art('meu'), attr: 'half', footer: 'プレイヤー', tags: ['meu'], text: ['(効果は後日追加)'], effects: [], note: '効果未定' }),
+  C({ id: 'arisu', name: '珠洲島 有栖', art: art('arisu'), attr: 'half', footer: 'プレイヤー', tags: ['arisu'], text: ['(効果は後日追加)'], effects: [], note: '効果未定' }),
+  C({ id: 'miruku', name: 'みるく', art: art('miruku'), attr: 'half', footer: 'プレイヤー', tags: ['miruku'], text: ['(効果は後日追加)'], effects: [], note: '効果未定 (キャラカードと仮定)' }),
+  C({ id: 'derakkuma', name: 'でらっくま', art: art('derakkuma'), attr: 'half', footer: 'プレイヤー', tags: ['derakkuma'], text: ['(効果は後日追加)'], effects: [], note: '効果未定 (キャラカードと仮定)' }),
   C({ id: 'nuinui-grace', name: 'ぬいぬいグレイス', art: art('nuinui'), attr: 'half', footer: 'ぬい、BEMANI、SDVX', tags: ['nui', 'bemani', 'sdvx'], flavor: 'グレイスよ。',
     text: ['このキャラクターが場にいる間、SDVX以外の課題曲が出ている場合、全プレイヤーはスキルカードを使えない。'],
     effects: [{ when: 'static', ops: [] }], note: '効果は「スキルカードを使えない」判定として常時有効 (場にいる間)' }),
@@ -148,6 +152,9 @@ export const slideCharts = [
     text: ['TRICKYが得意譜面傾向に含まれてないプレイヤーのスコアを-2'], effects: [{ when: 'resolve', ops: [{ op: 'scoreIfLackFav', t: 'TRICKY', n: -2 }] }] }),
   M({ id: 'baseline', name: 'ベースラインやってる？笑', machine: 'sdvx', tendency: 'NONE', composer: ['かめりあ feat. ななひら'], attr: 'menu', footer: '電波', flavor: 'ねえねえ君〜そこのぎゃんかわ女子〜',
     text: ['自分の場にある女性キャラクター1枚に付きスコア-1'], effects: [{ when: 'resolve', ops: [{ op: 'scoreCount', who: 'self', tag: 'female', per: -1 }] }] }),
+  M({ id: 'you-make-my-life-1up', name: 'You Make My Life 1UP', machine: 'musedash', tendency: 'NONE', unverified: true, tags: [],
+    text: ['相手が自分より高い目を出したとき、自分は引き直すことを選べる、またはカードを一枚引く。'],
+    effects: [{ when: 'oppRoll', ops: [{ op: 'oneUp' }] }] }),
   M({ id: 'saitama2000', name: 'さいたま2000', machine: 'taiko', tendency: 'NOTES', composer: ['LindaAI-CUE'], footer: '2000', tags: ['2000'],
     text: ['各プレイヤーの場にLindaAI-CUEがある場合、そのプレイヤーのスコアを+1する。', '各プレイヤーは自分の場にある〈太鼓の達人〉カードの枚数分山札を引く。'],
     effects: [{ when: 'resolve', ops: [{ op: 'scoreIfFieldHas', name: 'LindaAI-CUE', n: 1 }, { op: 'drawByCount', tag: 'taiko' }] }] }),
@@ -172,4 +179,4 @@ export const slideCharts = [
 ];
 
 export const slideMachines = [['taiko', '太鼓の達人', '#ff5a3c', null], ['kagura', '東方ダンマクカグラ', '#ffb0b0', null],
-  ['polaris', 'ポラリスコード', '#9ad0ff', null], ['djmax', 'DJMAX', '#ffd36a', null], ['platina', 'PLATINA::LAB', '#c0e8ff', null], ['groovecoaster', 'グルコス (GROOVE COASTER)', '#ff9ad0', null]];
+  ['polaris', 'ポラリスコード', '#9ad0ff', null], ['djmax', 'DJMAX', '#ffd36a', null], ['platina', 'PLATINA::LAB', '#c0e8ff', null], ['groovecoaster', 'グルコス (GROOVE COASTER)', '#ff9ad0', null], ['musedash', 'Muse Dash', '#ffb347', null]];

@@ -72,6 +72,7 @@ const OP = {
   yoshitaka: () => 'スコア＋2。3回目の発動時はスコアが無効になり、このカードを墓地に送る',
   aether: () => 'CHUNITHM/arcaeaキャラの数だけスコア＋、光が手札にある時さらに＋3',
   penalizeRoller: (o) => `出目が${o.min}以上なら、振った相手のスコア${o.n}`,
+  oneUp: () => '相手が自分より高い出目を出した時、自分のサイコロを引き直すか、山札から1枚引く(選択)',
   scoreByFieldName: (o) => `自分の場にある「${o.text}」が含まれるカード1枚につきスコア＋1`,
   leaderPenalty: (o) => `スコアが最も高いプレイヤーのスコアを${o.n > 0 ? '＋' : '－'}${Math.abs(o.n)}`,
   scoreCountEach: (o) => `各プレイヤーは、自分の場の${[o.nameIncludes ? `「${o.nameIncludes}」と名のつくキャラ` : '', o.tag ? `${o.tag}キャラ` : ''].filter(Boolean).join('及び')}の枚数×1点を得る`,
