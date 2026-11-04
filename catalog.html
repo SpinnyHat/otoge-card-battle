@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カード一覧 / Card catalog</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+html,body{overflow:auto!important;height:auto!important}
+body{background:#12141d;color:#eee;font-family:'Noto Sans JP',sans-serif;margin:0}
+header{position:sticky;top:0;z-index:50;background:#171a26ee;backdrop-filter:blur(6px);padding:.6rem .8rem;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;border-bottom:1px solid #fff2}
+header b{font-size:1.05rem}
+header button,header select,header input{font:inherit;background:#232842;color:#fff;border:1px solid #fff3;border-radius:8px;padding:.3rem .6rem}
+header button.on{background:#6a5cff}
+header label{display:flex;align-items:center;gap:.3rem;font-size:.85rem}
+h2{margin:1.2rem .8rem .3rem;font-size:1.1rem;border-left:5px solid #8a7cff;padding-left:.5rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--cw) + 8px),1fr));gap:.7rem .5rem;padding:.4rem .8rem;justify-items:center}
+.grid .card{--w:var(--cw);cursor:zoom-in}
+.item{display:flex;flex-direction:column;align-items:center;gap:.15rem;font-size:.7rem;color:#aab;max-width:var(--cw);text-align:center}
+.item .mc{font-size:.66rem;opacity:.8}
+#big{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:100}
+#big.on{display:grid}#big .card{--w:min(420px,80vw,60vh)}
+</style>
+</head>
+<body>
+<header>
+  <b>カード一覧</b><span id="count"></span>
+  <span id="tabs"></span>
+  <select id="mach"><option value="">機種: すべて</option></select>
+  <input id="q" type="search" placeholder="🔎 名前・効果">
+  <label>大きさ <input id="size" type="range" min="90" max="260" value="150"></label>
+  <label><input id="ph" type="checkbox"> 仮カード・機種カードを隠す</label>
+  <a href="index.html" style="color:#9cf;margin-left:auto">← ゲームへ</a>
+</header>
+<div id="out"></div>
+<div id="big"></div>
+<script type="module">
+import { CARDS, machinesOf } from './js/cards.js';
+import { cardEl } from './js/card.js';
+const TYPES = [['all', 'すべて'], ['chara', 'キャラ'], ['skill', 'スキル'], ['chart', '譜面'], ['machine', '機種']];
+const NAMES = { chara: 'キャラクターカード', skill: 'スキルカード', chart: '譜面カード', machine: '機種カード' };
+const st = { type: 'all', mach: '', q: '', hide: false };
+const $ = (s) => document.querySelector(s);
+const all = Object.values(CARDS);
+const machs = [...new Set(all.flatMap((c) => c.type === 'machine' ? [c.id] : c.type === 'chart' ? machinesOf(c) : []))].sort();
+for (const m of machs) $('#mach').append(Object.assign(document.createElement('option'), { value: m, textContent: m }));
+$('#tabs').append(...TYPES.map(([k, l]) => { const b = Object.assign(document.createElement('button'), { textContent: l }); b.onclick = () => { st.type = k; draw(); }; b.dataset.k = k; return b; }));
+$('#mach').onchange = (e) => { st.mach = e.target.value; draw(); };
+$('#q').oninput = (e) => { st.q = e.target.value.trim().toLowerCase(); draw(); };
+$('#ph').onchange = (e) => { st.hide = e.target.checked; draw(); };
+$('#size').oninput = (e) => document.documentElement.style.setProperty('--cw', e.target.value + 'px');
+document.documentElement.style.setProperty('--cw', '150px');
+$('#big').onclick = () => $('#big').classList.remove('on');
+function draw() {
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.k === st.type));
+  const out = $('#out'); out.replaceChildren(); let n = 0;
+  for (const t of ['chara', 'skill', 'chart', 'machine']) {
+    if (st.type !== 'all' && st.type !== t) continue;
+    const list = all.filter((c) => c.type === t && !(st.hide && (c.placeholder || c.type === 'machine' && st.type === 'all'))
+      && (!st.mach || (t === 'chart' ? machinesOf(c).includes(st.mach) : t === 'machine' ? c.id === st.mach : false))
+      && (!st.q || (c.name + ' ' + (c.text || []).join(' ')).toLowerCase().includes(st.q)));
+    if (!list.length) continue; n += list.length;
+    const h = document.createElement('h2'); h.textContent = `${NAMES[t]} (${list.length})`; out.append(h);
+    const g = document.createElement('div'); g.className = 'grid';
+    for (const c of list) {
+      const e = cardEl(c.id, { size: 'md' }); e.onclick = () => { $('#big').replaceChildren(cardEl(c.id, { size: 'xl' })); $('#big').classList.add('on'); };
+      const it = document.createElement('div'); it.className = 'item'; it.append(e);
+      if (c.type === 'chart') it.append(Object.assign(document.createElement('div'), { className: 'mc', textContent: machinesOf(c).join(' / ') }));
+      g.append(it);
+    }
+    out.append(g);
+  }
+  $('#count').textContent = `${n} 枚 / 全${all.length}枚`;
+}
+draw();
+</script>
+</body>
+</html>
